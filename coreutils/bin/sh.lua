@@ -252,7 +252,7 @@ while true do
   if inp then
     local ok, err = execute(inp)
     if not ok and err then
-      print(err)
+      io.stderr:write(err, "\n")
     end
   end
 end
