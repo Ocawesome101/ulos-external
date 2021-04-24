@@ -10,7 +10,7 @@ local fs = require("filesystem")
 local args, opts = require("argutil").parse(...)
 
 local colors = {
-  default = "39;49"
+  default = "39;49",
   dir = "49;94",
   link = "49;96",
   special = "49;93"
@@ -19,7 +19,7 @@ local colors = {
 local function infoify(base, files, hook)
   for i=1, #files, 1 do
     local fpath = path.canonical(path.concat(base, files[i]))
-    local 
+    local info, err = fs.stat(fpath)
   end
 end
 
