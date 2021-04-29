@@ -163,14 +163,24 @@ local function run_programs(programs, getout)
 
       execs[#execs + 1] = program
     elseif program == "|" then
-      if type(sequence[i - 1]) == "string" or
-          type(sequence[i + 1]) == "string" then
+      if type(sequence[i - 1]) ~= "table" or
+          type(sequence[i + 1]) ~= "table" then
         return nil, "sh: syntax error near unexpected token '|'"
       end
       local pipe = pipe.create()
       sequence[i - 1].output = pipe
       sequence[i + 1].input = pipe
     end
+  end
+
+  local outbuf = ""
+  if getout then
+    sequence[#sequence].output = {
+      write = function(_, ...)
+        outbuf = outbuf .. table.concat(table.pack(...))
+        return _
+      end, close = function()end
+    }
   end
 
   for i, program in ipairs(execs) do
@@ -228,6 +238,8 @@ local function run_programs(programs, getout)
 
     process.await(pid)
   end
+
+  if getout then return outbuf end
   return true
 end
 
@@ -242,7 +254,7 @@ local function parse(cmd)
     if token:match("[%(%{%[]") then -- opening bracket
       if preceding == "$" then
         push(token)
-        ret[#ret + 1] = ""
+        if ret[#ret] == "$" then ret[#ret] = "" else ret[#ret + 1] = "" end
       else
         -- TODO: handle this
         return nil, "sh: syntax error near unexpected token '" .. token .. "'"
@@ -252,7 +264,7 @@ local function parse(cmd)
       if token ~= alt[ttok] then
         return nil, "sh: syntax error near unexpected token '" .. token .. "'"
       end
-      local pok, perr = parse(ret[#ret])
+      local pok, perr = parse(table.concat(ret[#ret], " "))
       if not pok then
         return nil, perr
       end
@@ -269,6 +281,7 @@ local function parse(cmd)
         ret[#ret + 1] = ""
       end
     elseif opening and opening:match("[%(%[{]") then
+      ret[#ret + 1] = {}
       table.insert(ret[#ret], token)
     elseif state.quoted then
       ret[#ret] = ret[#ret] .. token
