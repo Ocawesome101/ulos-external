@@ -2,12 +2,14 @@
 
 local fs = require("filesystem")
 local pipe = require("pipe")
+local users = require("users")
 local process = require("process")
 local builtins = require("sh/builtins")
 local tokenizer = require("tokenizer")
 local w_iter = tokenizer.new()
 
 os.setenv("PWD", os.getenv("PWD") or "/")
+os.setenv("PS1", os.getenv("PS1") or "\\u@\\h: \\W\\$ ")
 
 local def_path = "/bin:/sbin:/usr/bin"
 
@@ -280,16 +282,64 @@ local function parse(cmd)
   return ret
 end
 
+-- instantly replace these
+local crep = {
+  ["\\a"] = "\a",
+  ["\\e"] = "\27",
+  ["\\n"] = "\n",
+  ["\\([0-7]+)"] = function(a) return string.char(tonumber(a, 8)) end,
+  ["\\x([0-9a-fA-F][0-9a-fA-F])"] = function(a) return
+    string.char(tonumber(a,16)) end
+}
+
 local function execute(cmd)
+  for k, v in pairs(crep) do
+    cmd = cmd:gsub(k, v)
+  end
+
   local data, err = parse(cmd)
   if not data then
     return nil, err
   end
+  
   return run_programs(data)
 end
 
+-- this should be mostly complete
+local prep = {
+  ["\\%$"] = function() return process.info().owner == 0 and "#" or "$" end,
+  ["\\a"] = function() return "\a" end,
+  ["\\A"] = function() return os.date("%H:%M") end,
+  ["\\d"] = function() return os.date("%a %b %d") end,
+  ["\\e"] = function() return "\27" end,
+  ["\\h"] = function() return os.getenv("HOSTNAME") or "localhost" end,
+  ["\\H"] = function() return os.getenv("HOSTNAME") or "localhost" end,
+  ["\\j"] = function() return "0" end, -- TODO what does this actually do?
+  ["\\l"] = function() return "tty"..(io.stdin.base.ttyn or 0) end,
+  ["\\n"] = function() return "\n" end,
+  ["\\r"] = function() return "\r" end,
+  ["\\s"] = function() return "sh" end,
+  ["\\t"] = function() return os.date("%T") end,
+  ["\\T"] = function() return os.date("%I:%M:%S") end,
+  ["\\u"] = function() return os.getenv("USER") end,
+  ["\\v"] = function() return SH_VERSION end,
+  ["\\V"] = function() return SH_VERSION end,
+  ["\\w"] = function() return (os.getenv("PWD"):gsub("^" .. ((os.getenv("HOME")
+    or "/"):gsub("%.%-%+", "%%%1")), "~")) end,
+  ["\\W"] = function() local n = require("path").split(os.getenv("PWD"));
+    if (not n[#n]) or #n[#n] == 0 then return "/" else return n[#n] end end,
+}
+
+local function prompt(text)
+  if not text then return "$ " end
+  for k, v in pairs(prep) do
+    text = text:gsub(k, v() or "")
+  end
+  return text
+end
+
 while not penv.exit do
-  io.write("dummy-shell: ", os.getenv("PWD") or "/", " $ ")
+  io.write(prompt(os.getenv("PS1")))
   local inp = io.read("L")
   if inp then
     local ok, err = execute(inp)
