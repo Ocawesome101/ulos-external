@@ -14,13 +14,15 @@ setmetatable(sizes, {
 local UNIT = 1024
 
 function lib.format(n, _)
-  if not _ then return end
+  if not _ then return tostring(n) end
   local i = 0
+  
   while n >= UNIT do
     n = n / UNIT
     i = i + 1
   end
-  return string.format("%.2f%s", n, sizes[i] or "")
+  
+  return string.format("%.1f%s", n, sizes[i] or "")
 end
 
 return lib

@@ -27,7 +27,10 @@ while true do
       if not shellf then
         io.write("failed loading shell: ", sherr, "\n\n")
       else
-        users.exec_as(uid, pw, shellf, shell, true)
+        local exit, err = users.exec_as(uid, pw, shellf, shell, true)
+        if exit ~= 0 then
+          print(err)
+        end
       end
     end
   end

@@ -28,7 +28,9 @@ function lib.parse(...)
         opt, oarg = opt or arg:sub(3), oarg or true
         opts[opt] = oarg
       elseif arg:sub(1,2) ~= "--" then
-        opts[arg:sub(2)] = true
+        for c in arg:sub(2):gmatch(".") do
+          opts[c] = true
+        end
       end
     end
   end

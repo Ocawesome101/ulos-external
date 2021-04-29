@@ -3,8 +3,11 @@
 local fs = require("filesystem")
 local pipe = require("pipe")
 local process = require("process")
+local builtins = require("sh/builtins")
 local tokenizer = require("tokenizer")
 local w_iter = tokenizer.new()
+
+os.setenv("PWD", os.getenv("PWD") or "/")
 
 local def_path = "/bin:/sbin:/usr/bin"
 
@@ -21,6 +24,7 @@ local function split(text)
   w_iter.i = 0
   local words = {}
   for word, ttype in tkiter do
+    word = word:gsub("\n", "")
     words[#words + 1] = word
   end
   return words
@@ -55,33 +59,49 @@ local splitc = {
 
 local var_decl = "([^ ]+)=(.-)"
 
+-- builtin command environment
+local penv = {
+  env = process.info().data.env,
+  exit = false
+}
 local function resolve_program(program)
+  if builtins[program] then
+    return function(...) return builtins[program](penv, ...) end
+  end
+
   if not program then
     return
   end
+  
   local pwd = os.getenv("PWD")
   local path = os.getenv("PATH") or def_path
+  
   if program:match("/") then
     local relative
+  
     if program:sub(1,1) == "/" then
       relative = program
     else
       relative = string.format("%s/%s", pwd, program)
     end
+    
     if fs.stat(relative) then
       return relative
     elseif fs.stat(relative .. ".lua") then
       return relative .. ".lua"
     end
   end
+
   for entry in path:gmatch("[^:]+") do
     local try = string.format("%s/%s", entry, program)
+  
     if fs.stat(try) then
       return try
     elseif fs.stat(try .. ".lua") then
       return try .. ".lua"
     end
   end
+
   return nil, "sh: " .. program .. ": command not found"
 end
 
@@ -125,12 +145,20 @@ local function run_programs(programs, getout)
           program[i] = os.getenv(token:sub(2))
         end
       end
+
       program[0] = program[1]
       local pre
       program[1], pre = resolve_program(program[1])
       if not program[1] and pre then
         return nil, pre
       end
+
+      for k, v in pairs(program) do
+        if type(v) == "string" and not v:match("[^%s]") and k ~= 0 then
+          table.remove(program, k)
+        end
+      end
+
       execs[#execs + 1] = program
     elseif program == "|" then
       if type(sequence[i - 1]) == "string" or
@@ -147,23 +175,36 @@ local function run_programs(programs, getout)
     if not program[1] then
       return
     end
-    local exec, err = loadfile(program[1])
+
+    local exec, err, pname
+    if type(program[1]) == "function" then
+      exec = program[1]
+      pname = program[0] .. " " .. table.concat(program, " ", 2)
+    else
+      exec, err = loadfile(program[1])
+      pname = table.concat(program, " ")
+    end
+
     if not exec then
       return nil, "sh: " .. program[0] .. ": " ..
         (err or "command not found")
     end
+    
     local pid = process.spawn {
       func = function()
         for k, v in pairs(program.env) do
           os.setenv(k, v)
         end
+    
         if program.input then
           io.input(program.input)
         end
+        
         if program.output then
           io.output(program.output)
         end
-        local ok, err, ret1 = pcall(exec, table.unpack(program, 2))
+        
+        local ok, err, ret1 = xpcall(exec, debug.traceback, table.unpack(program, 2))
         if not ok and err then
           io.stderr:write(program[0], ": ", err, "\n")
           os.exit(127)
@@ -171,9 +212,10 @@ local function run_programs(programs, getout)
           io.stderr:write(program[0], ": ", err, "\n")
           os.exit(127)
         end
+        
         os.exit(0)
       end,
-      name = table.concat(program) or program[1],
+      name = pname or program[0],
       stdin = program.input,
       input = program.input,
       stdout = program.output,
@@ -229,7 +271,7 @@ local function parse(cmd)
     elseif state.quoted then
       ret[#ret] = ret[#ret] .. token
     elseif token:match(" ") then
-      if #ret[#ret] > 0 then ret[#ret + 1] = "" end
+      if (not ret[#ret]) or #ret[#ret] > 0 then ret[#ret + 1] = "" end
     elseif token then
       if #ret == 0 then ret[1] = "" end
       ret[#ret] = ret[#ret] .. token
@@ -246,8 +288,8 @@ local function execute(cmd)
   return run_programs(data)
 end
 
-while true do
-  io.write("dummy-shell:$ ")
+while not penv.exit do
+  io.write("dummy-shell: ", os.getenv("PWD") or "/", " $ ")
   local inp = io.read("L")
   if inp then
     local ok, err = execute(inp)
@@ -256,3 +298,9 @@ while true do
     end
   end
 end
+
+if type(penv.exit) == "number" then
+  os.exit(penv.exit)
+end
+
+os.exit(0)
