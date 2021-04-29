@@ -4,7 +4,7 @@ local users = require("users")
 
 io.write("\27?0c\27[39;49m\nWelcome to ULOS.\n\n")
 
-while true do
+local function main()
   io.write("\27?0clogin: ")
   local un = io.read("l")
   io.write("password: \27?11c")
@@ -33,5 +33,12 @@ while true do
         end
       end
     end
+  end
+end
+
+while true do
+  local ok, err = xpcall(main, debug.traceback)
+  if not ok then
+    io.stderr:write(err, "\n")
   end
 end

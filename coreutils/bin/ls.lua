@@ -56,7 +56,7 @@ local function infoify(base, files, hook, hka)
     infos[i] = {
       perms = perms,
       user = user,
-      size = size.format(info.size, opts.h),
+      size = size.format(info.size, not opts.h),
       modified = os.date("%b %d %H:%M", info.lastModified),
     }
   
@@ -142,9 +142,9 @@ local function list(dir)
       print(colorize(files[i], dir))
     end
   else
-    print(text.mkcolumns(files, function(f)
-      return colorize(f, dir)
-    end))
+    print(text.mkcolumns(files, { hook = function(f)
+        return colorize(f, dir)
+    end }))
   end
 
   return true

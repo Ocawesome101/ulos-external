@@ -1,18 +1,34 @@
 -- shell builtins
 
 local path = require("path")
+local users = require("users")
 local fs = require("filesystem")
 
 local builtins = {}
 
 function builtins:cd(dir)
-  dir = dir or os.getenv("HOME") or "/"
+  if dir == "-" then
+    if not self.env.OLDPWD then
+      io.stderr:write("sh: cd: OLDPWD not set\n")
+      os.exit(1)
+    end
+    dir = self.env.OLDPWD
+    print(dir)
+  elseif not dir then
+    if not self.env.HOME then
+      io.stderr:write("sh: cd: HOME not set\n")
+      os.exit(1)
+    end
+    dir = self.env.HOME
+  end
   local cdir = path.canonical(dir)
   local ok, err = fs.stat(cdir)
   if ok then
+    self.env.OLDPWD = self.env.PWD
     self.env.PWD = cdir
   else
     io.stderr:write("sh: cd: ", dir, ": ", err, "\n")
+    os.exit(1)
   end
 end
 

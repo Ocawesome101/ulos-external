@@ -193,6 +193,22 @@ local function run_programs(programs, getout)
       exec = program[1]
       pname = program[0] .. " " .. table.concat(program, " ", 2)
     else
+      local handle = io.open(program[1], "r")
+      
+      if handle then
+        local data = handle:read(64)
+        handle:close()
+        local shebang = data:match("#!([^\n]+)\n")
+        if shebang then
+          local ok, err = resolve_program(shebang)
+          if not ok then
+            return nil, "sh: " .. program[0] .. ": " .. shebang ..
+              ": bad interpreter: " .. (err or "command not found")
+          end
+          table.insert(program, 1, shebang)
+        end
+      end
+
       exec, err = loadfile(program[1])
       pname = table.concat(program, " ")
     end
@@ -206,6 +222,16 @@ local function run_programs(programs, getout)
       func = function()
         for k, v in pairs(program.env) do
           os.setenv(k, v)
+        end
+
+        -- this hurts me, but i must do it
+        local old_osexe = os.execute
+        local old_osexit = os.exit
+        os.execute = penv.execute
+        function os.exit(n)
+          os.execute = old_osexe
+          os.exit = old_osexit
+          old_osexit(n)
         end
     
         if program.input then
@@ -274,6 +300,7 @@ local function parse(cmd)
       end
       ret[#ret] = rok
     elseif token:match([["']]) then
+      print(token)
       if state.quoted and token == state.quoted then
         state.quoted = false
       else
@@ -302,7 +329,8 @@ local crep = {
   ["\\n"] = "\n",
   ["\\([0-7]+)"] = function(a) return string.char(tonumber(a, 8)) end,
   ["\\x([0-9a-fA-F][0-9a-fA-F])"] = function(a) return
-    string.char(tonumber(a,16)) end
+    string.char(tonumber(a,16)) end,
+  ["~"] = os.getenv("HOME")
 }
 
 local function execute(cmd)
@@ -317,6 +345,8 @@ local function execute(cmd)
   
   return run_programs(data)
 end
+
+penv.execute = execute
 
 -- this should be mostly complete
 local prep = {

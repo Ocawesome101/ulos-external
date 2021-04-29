@@ -14,7 +14,7 @@ setmetatable(sizes, {
 local UNIT = 1024
 
 function lib.format(n, _)
-  if not _ then return tostring(n) end
+  if _ then return tostring(n) end
   local i = 0
   
   while n >= UNIT do

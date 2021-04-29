@@ -32,15 +32,45 @@ function lib.padLeft(n, text, c)
   return ("%s%s"):format(text, (c or " "):rep(n - #text))
 end
 
-function lib.mkcolumns(items, hook)
-  -- TODO: improve (i.e. actually implement) logic here
-  if hook then
+-- default behavior is to fill rows first because that's much easier
+-- TODO: implement column-first sorting
+function lib.mkcolumns(items, args)
+  checkArg(1, items, "table")
+  checkArg(2, args, "table", "nil")
+  
+  local lines = {""}
+  local text = {}
+  args = args or {}
+  -- default max width 50
+  args.maxWidth = args.maxWidth or 50
+  
+  table.sort(items)
+  
+  if args.hook then
     for i=1, #items, 1 do
-      items[i] = hook(items[i])
+      text[i] = args.hook(items[i]) or items[i]
     end
   end
 
-  return table.concat(items, "\n")
+
+  local longest = 0
+  for i=1, #items, 1 do
+    longest = math.max(longest, #items[i])
+  end
+
+  longest = longest + (args.spacing or 1)
+
+  for i=1, #text, 1 do
+    text[i] = string.format("%s%s", text[i], (" "):rep(longest - #items[i]))
+    
+    if #lines[#lines] + longest > args.maxWidth and #lines[#lines] > 0 then
+      lines[#lines + 1] = ""
+    end
+    
+    lines[#lines] = string.format("%s%s", lines[#lines], text[i])
+  end
+
+  return table.concat(lines, "\n")
 end
 
 return lib
