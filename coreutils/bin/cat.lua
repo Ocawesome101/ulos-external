@@ -30,6 +30,7 @@ for i=1, #args, 1 do
   else
     for line in handle:lines("L") do
       io.write(line)
+      os.sleep(0)
     end
     if handle ~= io.input() then handle:close() end
   end

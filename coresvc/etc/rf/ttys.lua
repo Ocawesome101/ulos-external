@@ -22,7 +22,12 @@ if not files then
   return
 end
 
-table.sort(files)
+table.sort(files, function(a, b)
+  if a:match("tty(%d+)") and b:match("tty(%d+)") then
+    return tonumber((a:match("tty(%d+)"))) < tonumber((b:match("tty(%d+)")))
+  end
+  return a < b
+end)
 
 local login, err = loadfile("/bin/login.lua")
 if not login then

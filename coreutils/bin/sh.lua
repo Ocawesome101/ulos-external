@@ -71,7 +71,7 @@ local function resolve_program(program)
     return function(...) return builtins[program](penv, ...) end
   end
 
-  if not program then
+  if program == "" or not program then
     return
   end
   
@@ -184,7 +184,7 @@ local function run_programs(programs, getout)
   end
 
   for i, program in ipairs(execs) do
-    if not program[1] then
+    if program[1] == "\n" or program[1] == "" or not program[1] then
       return
     end
 
@@ -299,8 +299,7 @@ local function parse(cmd)
         return nil, rerr
       end
       ret[#ret] = rok
-    elseif token:match([["']]) then
-      print(token)
+    elseif token:match([=[["']]=]) then
       if state.quoted and token == state.quoted then
         state.quoted = false
       else
@@ -383,14 +382,13 @@ end
 
 if io.stdin.tty then
   -- ignore ^C
-  process.info().data.self.signal[process.signals.interrupt] = function()
-    io.write("^C\n", prompt(os.getenv("PS1")))
-  end
+  process.info().data.self.signal[process.signals.interrupt] = function() end
 
   -- ignore ^Z
   process.info().data.self.signal[process.signals.kbdstop] = function() end
 
-  io.write("\27?0;2;3s")
+  -- ignore ^D
+  process.info().data.self.signal[process.signals.hangup] = function() end
 end
 
 while not penv.exit do
