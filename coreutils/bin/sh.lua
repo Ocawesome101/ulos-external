@@ -381,6 +381,18 @@ local function prompt(text)
   return text
 end
 
+if io.stdin.tty then
+  -- ignore ^C
+  process.info().data.self.signal[process.signals.interrupt] = function()
+    io.write("^C\n", prompt(os.getenv("PS1")))
+  end
+
+  -- ignore ^Z
+  process.info().data.self.signal[process.signals.kbdstop] = function() end
+
+  io.write("\27?0;2;3s")
+end
+
 while not penv.exit do
   io.write(prompt(os.getenv("PS1")))
   local inp = io.read("L")

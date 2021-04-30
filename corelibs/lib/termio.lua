@@ -25,15 +25,17 @@ function lib.getCursor(x, y)
 
   getHandler().setRaw(false)
   local y, x = resp:match("\27%[(%d+);(%d+)R")
-  
+
   return tonumber(x), tonumber(y)
 end
 
 function lib.getTermSize()
   local cx, cy = lib.getCursor()
   lib.setCursor(9999, 9999)
+  
   local w, h = lib.getCursor()
   lib.setCursor(cx, cy)
+
   return w, h
 end
 

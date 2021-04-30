@@ -4,6 +4,7 @@ local text = require("text")
 local size = require("size")
 local path = require("path")
 local users = require("users")
+local termio = require("termio")
 local filetypes = require("filetypes")
 local fs = require("filesystem")
 
@@ -32,7 +33,8 @@ local function infoify(base, files, hook, hka)
     
     local info, err = fs.stat(fpath)
     if not info then
-      io.stderr:write("ls: failed getting information for ", fpath, ": ", err, "\n")
+      io.stderr:write("ls: failed getting information for ", fpath, ": ",
+        err, "\n")
       return nil
     end
     
@@ -144,7 +146,8 @@ local function list(dir)
   else
     print(text.mkcolumns(files, { hook = function(f)
         return colorize(f, dir)
-    end }))
+      end,
+      maxWidth = termio.getTermSize() }))
   end
 
   return true

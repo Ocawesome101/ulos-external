@@ -7,7 +7,7 @@ if opts.help then
 usage: cat FILE1 FILE2 ...
 Concatenate FILE(s) to standard output.  With no
 FILE, or where FILE is -, read standard input.
-]]
+]])
   os.exit(0)
 end
 
