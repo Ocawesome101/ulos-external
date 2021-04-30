@@ -277,7 +277,7 @@ local function parse(cmd)
     token = token:gsub("\n", "")
     local opening = token_st[#token_st]
     local preceding = words[i - 1]
-    if token:match("[%(%{%[]") then -- opening bracket
+    if token:match("[%(%{%[]") and not state.quoted then -- opening bracket
       if preceding == "$" then
         push(token)
         if ret[#ret] == "$" then ret[#ret] = "" else ret[#ret + 1] = "" end
@@ -285,7 +285,7 @@ local function parse(cmd)
         -- TODO: handle this
         return nil, "sh: syntax error near unexpected token '" .. token .. "'"
       end
-    elseif token:match("[%)%]%}]") then -- closing bracket
+    elseif token:match("[%)%]%}]") and not state.quoted then -- closing bracket
       local ttok = pop()
       if token ~= alt[ttok] then
         return nil, "sh: syntax error near unexpected token '" .. token .. "'"
@@ -302,9 +302,11 @@ local function parse(cmd)
     elseif token:match([=[["']]=]) then
       if state.quoted and token == state.quoted then
         state.quoted = false
-      else
+      elseif not state.quoted then
         state.quoted = token
         ret[#ret + 1] = ""
+      else
+        ret[#ret] = ret[#ret] .. token
       end
     elseif opening and opening:match("[%(%[{]") then
       ret[#ret + 1] = {}
