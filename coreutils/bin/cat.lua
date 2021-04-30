@@ -28,8 +28,9 @@ for i=1, #args, 1 do
     io.stderr:write("cat: cannot open '", args[i], "': ", err)
     os.exit(1)
   else
-    local data = handle:read("a")
-    handle:close()
-    io.write(data)
+    for line in handle:lines("L") do
+      io.write(line)
+    end
+    if handle ~= io.input() then handle:close() end
   end
 end
