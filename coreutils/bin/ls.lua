@@ -15,8 +15,21 @@ if opts.help then
 usage: ls [options] [file1 [file2 ...]]
 Lists information about file(s).  Defaults to the
 current directory.  Sorts entries alphabetically.
-  -a            Show hidden files
-  --color=WHEN
+  -1            one file per line
+  -a            show hidden files
+  --color=WHEN  if no, disable coloration;  if
+                always, force coloration even if
+                the output is not a terminal;
+                otherwise, determine automatically
+  -d            display information about a
+                directory as though it were a file
+  -h            human-readable file sizes
+  --help        display this help message and exit
+  -l            display full file information
+                (permissions, last modification
+                date, etc.)
+This implementation (c) 2021 Ocawesome101, under
+the GNU GPLv3.
 ]=])
   os.exit(1)
 end
