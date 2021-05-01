@@ -28,8 +28,8 @@ current directory.  Sorts entries alphabetically.
   -l            display full file information
                 (permissions, last modification
                 date, etc.)
-This implementation (c) 2021 Ocawesome101, under
-the GNU GPLv3.
+This implementation (c) 2021 i develop things
+under the DSLv1.
 ]=])
   os.exit(1)
 end
