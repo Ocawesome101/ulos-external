@@ -63,7 +63,8 @@ function lib.mkcolumns(items, args)
   for i=1, #text, 1 do
     text[i] = string.format("%s%s", text[i], (" "):rep(longest - #items[i]))
     
-    if longest * n > args.maxWidth and #lines[#lines] > 0 then
+    if longest * (n + 1) + 1 > args.maxWidth and #lines[#lines] > 0 then
+      n = 0
       lines[#lines + 1] = ""
     end
     

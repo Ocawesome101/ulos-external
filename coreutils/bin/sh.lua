@@ -15,7 +15,7 @@ os.setenv("PS1", os.getenv("PS1") or "\\u@\\h: \\W\\$ ")
 local def_path = "/bin:/sbin:/usr/bin"
 
 w_iter.discard_whitespace = false
-w_iter:addToken("bracket", "()[]{}")
+w_iter:addToken("bracket", "()[]{}<>")
 w_iter:addToken("splitter", "$|&\"'; ")
 
 local function tkiter()
@@ -57,7 +57,9 @@ local alt = {
 local splitc = {
   ["|"] = true,
   [";"] = true,
-  ["&"] = true
+  ["&"] = true,
+  [">"] = true,
+  ["<"] = true
 }
 
 local var_decl = "([^ ]+)=(.-)"
@@ -121,6 +123,7 @@ local function run_programs(programs, getout)
   for i, token in ipairs(programs) do
     if splitc[token] then
       if #sequence[#sequence] > 0 then
+        table.insert(sequence, token)
         sequence[#sequence + 1] = {}
       else
         return nil, "sh: syntax error near unexpected token '"..token.."'"
@@ -183,6 +186,21 @@ local function run_programs(programs, getout)
       local pipe = pipe.create()
       sequence[i - 1].output = pipe
       sequence[i + 1].input = pipe
+    elseif program == ">" then
+      if type(sequence[i - 1]) ~= "table" or
+          type(sequence[i + 1]) ~= "table" then
+        return nil, "sh: syntax error near unexpected token '>'"
+      end
+      local handle, err = io.open(sequence[i+1][1], "a")
+      if not handle then
+        handle, err = io.open(sequence[i+1][1], "w")
+      end
+      if not handle then
+        return nil, "sh: cannot open " .. sequence[i+1][1] .. ": " ..
+          err .. "\n"
+      end
+      table.remove(sequence[i + 1], 1)
+      sequence[i - 1].output = handle
     end
   end
 
@@ -258,7 +276,12 @@ local function run_programs(programs, getout)
           io.output(program.output)
         end
         
-        local ok, err, ret1 = xpcall(exec, debug.traceback, table.unpack(program, 2))
+        local ok, err, ret1 = xpcall(exec, debug.traceback,
+          table.unpack(program, 2))
+
+        if not io.input().tty then io.input():close() end
+        if not io.output().tty then io.output():close() end
+
         if not ok and err then
           io.stderr:write(program[0], ": ", err, "\n")
           os.exit(127)
@@ -335,11 +358,13 @@ local function parse(cmd)
       ret[#ret] = ret[#ret] .. token
     elseif token:match("[%s\n]") then
       if (not ret[#ret]) or #ret[#ret] > 0 then ret[#ret + 1] = "" end
-    elseif token == ";" then
-      if #ret == 0 or #ret[#ret] == 0 then
-        io.stderr:write("sh: syntax error near unexpected token ';'\n")
+    elseif token == ";" or token == ">" then
+      if #ret == 0 or #(ret[#ret - 1] or ret[#ret]) == 0 then
+        io.stderr:write("sh: syntax error near unexpected token '", token,
+          "'\n")
+        return nil
       end
-      ret[#ret + 1] = ";"
+      ret[#ret + 1] = token
       ret[#ret + 1] = ""
     elseif token then
       if #ret == 0 then ret[1] = "" end
