@@ -1,1 +1,1 @@
-print(os.getenv("PWD"))
+io.write(os.getenv("PWD"), "\n")

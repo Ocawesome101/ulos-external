@@ -12,4 +12,12 @@ function handler.setRaw(raw)
   end
 end
 
+function handler.ttyIn()
+  return not not io.input().tty
+end
+
+function handler.ttyOut()
+  return not not io.output().tty
+end
+
 return handler

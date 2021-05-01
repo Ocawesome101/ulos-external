@@ -9,10 +9,17 @@ end
 
 -------------- Cursor manipulation ---------------
 function lib.setCursor(x, y)
+  if not getHandler().ttyOut() then
+    return
+  end
   io.write(string.format("\27[%d;%dH", y, x))
 end
 
 function lib.getCursor(x, y)
+  if not (getHandler().ttyIn() and getHandler().ttyOut()) then
+    return 1, 1
+  end
+
   io.write("\27[6n")
   
   getHandler().setRaw(true)
@@ -61,12 +68,12 @@ function lib.readKey()
   local key, flags
 
   if data == "\27" then
-    local intermediate = io.read(1)
+    local intermediate = io.stdin:read(1)
     if intermediate == "[" then
       data = ""
 
       repeat
-        local c = io.read(1)
+        local c = io.stdin:read(1)
         data = data .. c
         if c:match("[a-zA-Z]") then
           key = c
@@ -83,7 +90,7 @@ function lib.readKey()
 
       key = substitutions[key] or "unknown"
     else
-      key = io.read(1)
+      key = io.stdin:read(1)
       flags = {alt = true}
     end
   elseif data:byte() > 31 and data:byte() < 127 then

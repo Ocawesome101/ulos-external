@@ -10,6 +10,17 @@ local fs = require("filesystem")
 
 local args, opts = require("argutil").parse(...)
 
+if opts.help then
+  io.stderr:write([=[
+usage: ls [options] [file1 [file2 ...]]
+Lists information about file(s).  Defaults to the
+current directory.  Sorts entries alphabetically.
+  -a            Show hidden files
+  --color=WHEN
+]=])
+  os.exit(1)
+end
+
 local colors = {
   default = "39;49",
   dir = "49;94",
@@ -78,6 +89,9 @@ local function infoify(base, files, hook, hka)
 end
 
 local function colorize(f, p)
+  if opts.color == "no" or ((not io.output().tty) and opts.color ~= "always") then
+    return f
+  end
   if type(f) == "table" then
     for i=1, #f, 1 do
       f[i] = colorize(f[i], p)
@@ -127,8 +141,16 @@ local function list(dir)
     return nil, string.format("cannot access '%s': %s", odir, err)
   end
   
+  local rm = {}
   for i=1, #files, 1 do
     files[i] = files[i]:gsub("[/]+$", "")
+    if files[i]:sub(1,1) == "." and not opts.a then
+      rm[#rm + 1] = i
+    end
+  end
+
+  for i=#rm, 1, -1 do
+    table.remove(files, rm[i])
   end
 
   table.sort(files)

@@ -52,7 +52,6 @@ function lib.mkcolumns(items, args)
     end
   end
 
-
   local longest = 0
   for i=1, #items, 1 do
     longest = math.max(longest, #items[i])
@@ -60,14 +59,17 @@ function lib.mkcolumns(items, args)
 
   longest = longest + (args.spacing or 1)
 
+  local n = 0
   for i=1, #text, 1 do
     text[i] = string.format("%s%s", text[i], (" "):rep(longest - #items[i]))
     
-    if #lines[#lines] + longest > args.maxWidth and #lines[#lines] > 0 then
+    if longest * n > args.maxWidth and #lines[#lines] > 0 then
       lines[#lines + 1] = ""
     end
     
     lines[#lines] = string.format("%s%s", lines[#lines], text[i])
+
+    n = n + 1
   end
 
   return table.concat(lines, "\n")

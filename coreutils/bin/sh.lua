@@ -6,6 +6,7 @@ local users = require("users")
 local process = require("process")
 local builtins = require("sh/builtins")
 local tokenizer = require("tokenizer")
+local args, shopts = require("argutil").parse(...)
 local w_iter = tokenizer.new()
 
 os.setenv("PWD", os.getenv("PWD") or "/")
@@ -64,6 +65,7 @@ local var_decl = "([^ ]+)=(.-)"
 -- builtin command environment
 local penv = {
   env = process.info().data.env,
+  shopts = shopts,
   exit = false
 }
 local function resolve_program(program)
@@ -105,6 +107,12 @@ local function resolve_program(program)
   end
 
   return nil, "sh: " .. program .. ": command not found"
+end
+
+local function os_execute(...)
+  local prg = table.concat(table.pack(...), " ")
+  local e, c = penv.execute(prg)
+  return c ~= 0, e, c
 end
 
 local function run_programs(programs, getout)
@@ -161,7 +169,12 @@ local function run_programs(programs, getout)
         end
       end
 
-      execs[#execs + 1] = program
+      if (not penv.skip_until) or program[0] == penv.skip_until then
+        penv.skip_until = nil
+        execs[#execs + 1] = program
+      end
+      -- TODO: there's some weirdness that will happen here under
+      -- certain conditions
     elseif program == "|" then
       if type(sequence[i - 1]) ~= "table" or
           type(sequence[i + 1]) ~= "table" then
@@ -181,7 +194,10 @@ local function run_programs(programs, getout)
         return _
       end, close = function()end
     }
+    setmetatable(sequence[#sequence].output, {__name = "FILE*"})
   end
+
+  local exit, code
 
   for i, program in ipairs(execs) do
     if program[1] == "\n" or program[1] == "" or not program[1] then
@@ -227,7 +243,7 @@ local function run_programs(programs, getout)
         -- this hurts me, but i must do it
         local old_osexe = os.execute
         local old_osexit = os.exit
-        os.execute = penv.execute
+        os.execute = os_execute
         function os.exit(n)
           os.execute = old_osexe
           os.exit = old_osexit
@@ -262,11 +278,15 @@ local function run_programs(programs, getout)
                 or io.stderr
     }
 
-    process.await(pid)
+    code, exit = process.await(pid)
+
+    if code ~= 0 and shopts.e then
+      return exit, code
+    end
   end
 
-  if getout then return outbuf end
-  return true
+  if getout then return outbuf, exit, code end
+  return exit, code
 end
 
 local function parse(cmd)
@@ -277,7 +297,7 @@ local function parse(cmd)
     token = token:gsub("\n", "")
     local opening = token_st[#token_st]
     local preceding = words[i - 1]
-    if token:match("[%(%{%[]") and not state.quoted then -- opening bracket
+    if token:match("[%(%{]") and not state.quoted then -- opening bracket
       if preceding == "$" then
         push(token)
         if ret[#ret] == "$" then ret[#ret] = "" else ret[#ret + 1] = "" end
@@ -285,7 +305,7 @@ local function parse(cmd)
         -- TODO: handle this
         return nil, "sh: syntax error near unexpected token '" .. token .. "'"
       end
-    elseif token:match("[%)%]%}]") and not state.quoted then -- closing bracket
+    elseif token:match("[%)%}]") and not state.quoted then -- closing bracket
       local ttok = pop()
       if token ~= alt[ttok] then
         return nil, "sh: syntax error near unexpected token '" .. token .. "'"
@@ -308,13 +328,19 @@ local function parse(cmd)
       else
         ret[#ret] = ret[#ret] .. token
       end
-    elseif opening and opening:match("[%(%[{]") then
+    elseif opening and opening:match("[%({]") then
       ret[#ret + 1] = {}
       table.insert(ret[#ret], token)
     elseif state.quoted then
       ret[#ret] = ret[#ret] .. token
-    elseif token:match(" ") then
+    elseif token:match("[%s\n]") then
       if (not ret[#ret]) or #ret[#ret] > 0 then ret[#ret + 1] = "" end
+    elseif token == ";" then
+      if #ret == 0 or #ret[#ret] == 0 then
+        io.stderr:write("sh: syntax error near unexpected token ';'\n")
+      end
+      ret[#ret + 1] = ";"
+      ret[#ret + 1] = ""
     elseif token then
       if #ret == 0 then ret[1] = "" end
       ret[#ret] = ret[#ret] .. token
@@ -343,7 +369,7 @@ local function execute(cmd)
   if not data then
     return nil, err
   end
-  
+
   return run_programs(data)
 end
 
@@ -394,7 +420,7 @@ if io.stdin.tty then
 end
 
 while not penv.exit do
-  io.write(prompt(os.getenv("PS1")))
+  io.write("\27?0c", prompt(os.getenv("PS1")))
   local inp = io.read("L")
   if inp then
     local ok, err = execute(inp)
