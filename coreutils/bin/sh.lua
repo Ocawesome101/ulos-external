@@ -199,8 +199,12 @@ local function run_programs(programs, getout)
         return nil, "sh: cannot open " .. sequence[i+1][1] .. ": " ..
           err .. "\n"
       end
-      table.remove(sequence[i + 1], 1)
+      table.remove(sequence, i + 1)
       sequence[i - 1].output = handle
+      handle.buffer_mode = "none"
+      handle:write("")
+      handle:flush()
+      getout = false
     end
   end
 
@@ -265,6 +269,9 @@ local function run_programs(programs, getout)
         function os.exit(n)
           os.execute = old_osexe
           os.exit = old_osexit
+          if program.output then
+            program.output:close()
+          end
           old_osexit(n)
         end
     

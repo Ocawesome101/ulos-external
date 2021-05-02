@@ -50,13 +50,13 @@ function lib.tree(dir, modify, rootfs)
       return nil, full .. ": " .. err
     end
 
+    ret[#ret + 1] = path.clean(string.format("%s/%s", dir, files[i]))
+    
     if info.isDirectory then
       local _, err = lib.tree(string.format("%s/%s", dir, files[i]), ret, root)
       if not _ then
         return nil, err
       end
-    else
-      ret[#ret + 1] = path.clean(string.format("%s/%s", dir, files[i]))
     end
   end
 

@@ -13,6 +13,7 @@ for i=1, #args, 1 do
   end
 
   for i=1, #tree, 1 do
-    print(tree[i])
+    io.stderr:write(tree[i], "\n")
+    io.write(tree[i], "\n")
   end
 end
