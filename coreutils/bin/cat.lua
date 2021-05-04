@@ -19,7 +19,7 @@ for i=1, #args, 1 do
   local handle, err
 
   if args[i] == "-" then
-    handle, err = io.stdin, "missing stdin"
+    handle, err = io.input(), "missing stdin"
   else
     handle, err = io.open(require("path").canonical(args[i]), "r")
   end

@@ -275,12 +275,12 @@ local function run_programs(programs, getout)
     
         if program.input then
           io.input(program.input)
-          io.stdin = program.input
+          --io.stdin = program.input
         end
         
         if program.output then
           io.output(program.output)
-          io.stdout = program.output
+          --io.stdout = program.output
         end
         
         local ok, err, ret1 = xpcall(exec, debug.traceback,
