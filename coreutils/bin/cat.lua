@@ -25,7 +25,7 @@ for i=1, #args, 1 do
   end
   
   if not handle then
-    io.stderr:write("cat: cannot open '", args[i], "': ", err)
+    io.stderr:write("cat: cannot open '", args[i], "': ", err, "\n")
     os.exit(1)
   else
     for line in handle:lines("L") do
