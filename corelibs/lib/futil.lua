@@ -18,7 +18,6 @@ function lib.tree(dir, modify, rootfs)
 
   for k, v in pairs(mounts) do
     if #nrootfs < #k then
-      print(k)
       if abs:match("^"..text.escape(k)) then
         nrootfs = k
       end

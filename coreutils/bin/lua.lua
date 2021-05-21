@@ -19,6 +19,7 @@ end
 -- prevent some pollution of _G
 local prog_env = {}
 for k, v in pairs(_G) do prog_env[k] = v end
+setmetatable(prog_env, {__index = _G})
 
 if opts.v then
   if _VERSION == "Lua 5.2" then
