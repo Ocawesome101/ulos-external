@@ -6,6 +6,18 @@ local filesystem = require("filesystem")
 
 local args, opts = require("argutil").parse(...)
 
+if opts.help then
+  io.stderr:write([[
+usage: df [-h]
+Print information about attached filesystems.
+Uses information from the sysfs.
+
+Options:
+  -h  Print sizes in human-readable form.
+]])
+  os.exit(1)
+end
+
 local fscpath = "/sys/components/by-type/filesystem/"
 local files = filesystem.list(fscpath)
 

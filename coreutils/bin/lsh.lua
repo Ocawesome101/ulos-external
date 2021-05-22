@@ -23,6 +23,14 @@ local paths = require("path")
 
 local args, opts = require("argutil").parse(...)
 
+if opts.help then
+  io.stderr:write([[
+usage: lsh
+The Lisp-like SHell.  See lsh(1) for details.
+]])
+  os.exit(1)
+end
+
 -- Initialize environment --
 os.setenv("PWD", os.getenv("PWD") or os.getenv("HOME") or "/")
 os.setenv("PS1", os.getenv("PS1") or 

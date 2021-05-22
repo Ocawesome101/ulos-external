@@ -5,6 +5,17 @@ local size = require("size")
 
 local args, opts = require("argutil").parse(...)
 
+if opts.help then
+  io.stderr:write([[
+usage: free [-h]
+Prints system memory usage information.
+
+Options:
+  -h  Print sizes human-readably.
+]])
+  os.exit(1)
+end
+
 local function pinfo()
   local total = computer.totalMemory()
   local free = computer.freeMemory()

@@ -8,8 +8,10 @@ local args, opts = require("argutil").parse(...)
 
 if #args == 0 or opts.help then
   io.stderr:write([[
-usage: file <file1> [<file2> ...]
+usage: file FILE ...
    or: file [--help]
+Prints filetype information for the specified
+FILE(s).
 ]])
   os.exit(0)
 end

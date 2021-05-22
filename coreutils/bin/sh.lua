@@ -7,6 +7,16 @@ local process = require("process")
 local builtins = require("sh/builtins")
 local tokenizer = require("tokenizer")
 local args, shopts = require("argutil").parse(...)
+
+if shopts.help then
+  io.stderr:write([[
+usage: sh [-e]
+A Bourne-ish shell.  Mildly deprecated in favor of
+the Lisp-like SHell (lsh).
+]])
+  os.exit(1)
+end
+
 local w_iter = tokenizer.new()
 
 os.setenv("PWD", os.getenv("PWD") or "/")

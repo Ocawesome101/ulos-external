@@ -1,6 +1,12 @@
 -- login.  finally!!!
 
 local users = require("users")
+local process = require("process")
+
+if process.info().data.owner ~= 0 then
+  io.stderr:write("login may only be run as root!\n")
+  os.exit(1)
+end
 
 io.write("\27?0c\27[39;49m\nWelcome to ULOS.\n\n")
 

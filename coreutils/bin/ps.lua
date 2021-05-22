@@ -19,7 +19,7 @@ end
 if opts.help then
   io.stderr:write([[
 usage: ps
-Format process information from /proc.
+Format process information from /sys/proc.
 ]])
   os.exit(0)
 end
