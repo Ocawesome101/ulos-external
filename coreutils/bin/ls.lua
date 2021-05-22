@@ -178,6 +178,10 @@ local function list(dir)
     for i=1, #files, 1 do
       print(colorize(files[i], dir))
     end
+  elseif not (io.stdin.tty and io.stdout.tty) then
+    for i=1, #files, 1 do
+      print(files[i])
+    end
   else
     print(text.mkcolumns(files, { hook = function(f)
         return colorize(f, dir)

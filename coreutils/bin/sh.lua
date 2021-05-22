@@ -440,6 +440,32 @@ local function prompt(text)
   return text
 end
 
+local function exec_script(s)
+  local handle, err = io.open(s, "r")
+  if not handle then
+    io.stderr:write(s, ": ", err, "\n")
+    if not noex then os.exit(1) end
+    return
+  end
+  local data = handle:read("a")
+  handle:close()
+
+  local ok, err = execute(data)
+  if not ok and err then
+    io.stderr:write(s, ": ", err, "\n")
+    if not noex then os.exit(1) end
+    return
+  end
+end
+
+if fs.stat("/etc/profile") then
+  exec_script("/etc/profile", true)
+end
+
+if fs.stat(os.getenv("HOME").."/.shrc") then
+  exec_script(os.getenv("HOME").."/.shrc", true)
+end
+
 if io.stdin.tty then
   -- ignore ^C
   process.info().data.self.signal[process.signals.interrupt] = function() end
