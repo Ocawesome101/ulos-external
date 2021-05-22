@@ -82,7 +82,7 @@ local function infoify(base, files, hook, hka)
     infos[i] = {
       perms = perms,
       user = user,
-      size = size.format(info.size, not opts.h),
+      size = size.format(math.floor(info.size), not opts.h),
       modified = os.date("%b %d %H:%M", info.lastModified),
     }
   
