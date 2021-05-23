@@ -255,6 +255,12 @@ local builtins = {
   ["print"] = function(...)
     print(table.concat(table.pack(...), " "))
   end,
+  ["time"] = function(...)
+    local computer = require("computer")
+    local start = computer.uptime()
+    os.execute(table.concat(table.pack(...), " "))
+    print("\ntook " .. (computer.uptime() - start) .. "s")
+  end,
   ["+"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
   ["-"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
   ["/"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
