@@ -175,7 +175,7 @@ local function call(name, func, args)
   if fauxio then
     out = {}
     for line in fauxio.buffer:gmatch("[^\n]+") do
-      out[#out+1] = line .. "\n"
+      out[#out+1] = line
     end
   end
 
@@ -246,18 +246,18 @@ local builtins = {
   ["/"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
   ["*"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
   ["="] = function(a, b) os.exit(a == b and 0 or 1) end,
-  ["tee"] = function(f, ...)
+  ["into"] = function(f, ...)
     if not f then
-      io.stderr:write("tee: usage: tee FILE ...\nWrite all arguments to FILE.\n")
+      io.stderr:write("into: usage: into FILE ...\nWrite all arguments to FILE.\n")
     end
     local name, mode = f:match("(.-):(.)")
     name = name or f
     local handle, err = io.open(name, mode or "w")
     if not handle then
-      io.stderr:write("tee: ", name, ": ", err, "\n")
+      io.stderr:write("into: ", name, ": ", err, "\n")
       os.exit(1)
     end
-    handle:write(table.concat(..., " "))
+    handle:write(table.concat(..., "\n"))
     handle:close()
   end,
   ["seq"] = function(start, finish)
