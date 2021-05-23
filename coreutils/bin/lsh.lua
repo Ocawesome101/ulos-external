@@ -34,7 +34,7 @@ end
 -- Initialize environment --
 os.setenv("PWD", os.getenv("PWD") or os.getenv("HOME") or "/")
 os.setenv("PS1", os.getenv("PS1") or 
-  "(get USER)@(or (get HOSTNAME) localhost): (or (match (get PWD) \"([^/]+)/?$\") /)> ")
+  "<(get USER)@(or (get HOSTNAME) localhost): (or (match (get PWD) \"([^/]+)/?$\") /)> ")
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
 
 local splitters = {
@@ -238,6 +238,20 @@ local builtins = {
     end
     print(table.concat(table.pack(string.match(str, pat)), "\n"))
   end,
+  ["gsub"] = function(str, pat, rep)
+    if not (str and pat and rep) then
+      io.stderr:write("gsub: usage: gsub STRING PATTERN REPLACE\nReplace all matches of PATTERN with REPLACE.\n")
+      os.exit(1)
+    end
+    print(table.concat(table.pack(string.gsub(str,pat,rep)), "\n"))
+  end,
+  ["sub"] = function(str, i, j)
+    if not (str and tonumber(i) and tonumber(j)) then
+      io.stderr:write("sub: usage: sub STRING START END\nPrint a substring of STRING, beginning at index\nSTART and ending at END.\n")
+      os.exit(1)
+    end
+    print(string.sub(str, tonumber(i), tonumber(j)))
+  end,
   ["print"] = function(...)
     print(table.concat(table.pack(...), " "))
   end,
@@ -257,7 +271,7 @@ local builtins = {
       io.stderr:write("into: ", name, ": ", err, "\n")
       os.exit(1)
     end
-    handle:write(table.concat(..., "\n"))
+    handle:write(table.concat(table.pack(...), "\n"))
     handle:close()
   end,
   ["seq"] = function(start, finish)
