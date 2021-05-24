@@ -42,6 +42,7 @@ local splitters = {
   ["]"] = true,
   ["("] = true,
   [")"] = true,
+  ["#"] = true,
 }
 
 local rdr = {
@@ -371,14 +372,14 @@ processTokens = function(tokens, noeval)
       return nil, "unexpected token ')'"
     elseif tok == "]" then
       return nil, "unexpected token ')'"
-    elseif tok ~= ";" then
+    elseif tok ~= "#" then
       if defined[tok] then
         sequence[#sequence+1] = defined[tok]
       else
         sequence[#sequence+1] = tok
       end
     end
-  until tok == ";" or not tok
+  until tok == "#" or not tok
 
   if #sequence == 0 then return "" end
 

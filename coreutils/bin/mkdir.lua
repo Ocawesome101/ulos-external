@@ -1,6 +1,7 @@
 -- coreutils: mkdir --
 
 local path = require("path")
+local ftypes = require("filetypes")
 local filesystem = require("filesystem")
 
 local args, opts = require("argutil").parse(...)
@@ -31,7 +32,7 @@ for i=1, #args, 1 do
       local segments = path.split(parent)
       for i, segment in ipairs(segments) do
         local ok, err = filesystem.touch(path.clean(
-          table.concat(segments, "/", 1, i)), filesystem.types.directory)
+          table.concat(segments, "/", 1, i)), ftypes.directory)
         if not ok then
           io.stderr:write("mkdir: cannot create directory '", args[i], ": ",
             err, "\n")
@@ -39,7 +40,7 @@ for i=1, #args, 1 do
         end
       end
     end
-    local ok, err = filesystem.touch(dir, filesystem.types.directory)
+    local ok, err = filesystem.touch(dir, ftypes.directory)
     if not ok then
       io.stderr:write("mkdir: cannot create directory '", args[i],
         "': ", err, "\n")

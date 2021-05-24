@@ -10,19 +10,27 @@ if opts.k then
   os.exit(0)
 end
 
+local function try(f, a)
+  local ok, err = f(a)
+  if not ok then
+    io.stderr:write("shutdown: ", err, "\n")
+    os.exit(1)
+  end
+end
+
 -- reboot
 if opts.r or opts.reboot then
-  computer.shutdown(true)
+  try(computer.shutdown, true)
 end
 
 -- halt
 if opts.h or opts.halt then
-  computer.shutdown("halt")
+  try(computer.shutdown, "halt")
 end
 
 -- just power off
 if opts.p or opts.P or opts.poweroff then
-  computer.shutdown()
+  try(computer.shutdown)
 end
 
 io.stderr:write([[

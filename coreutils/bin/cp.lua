@@ -2,6 +2,7 @@
 
 local path = require("path")
 local futil = require("futil")
+local ftypes = require("filetypes")
 local filesystem = require("filesystem")
 
 local args, opts = require("argutil").parse(...)
@@ -73,13 +74,13 @@ local function cp(f)
     end
     local tree = futil.tree(file)
 
-    filesystem.touch(dest, filesystem.types.directory)
+    filesystem.touch(dest, ftypes.directory)
 
     for i=1, #tree, 1 do
       local abs = path.concat(dest, tree[i]:sub(#file + 1))
       local data = filesystem.stat(tree[i])
       if data.isDirectory then
-        local ok, err = filesystem.touch(abs, filesystem.types.directory)
+        local ok, err = filesystem.touch(abs, ftypes.directory)
         if not ok then
           exit("cannot create directory ", abs, ": ", err, "\n")
         end

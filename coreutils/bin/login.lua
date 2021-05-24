@@ -3,7 +3,7 @@
 local users = require("users")
 local process = require("process")
 
-if (process.info().data.owner or 0) ~= 0 then
+if (process.info().owner or 0) ~= 0 then
   io.stderr:write("login may only be run as root!\n")
   os.exit(1)
 end
@@ -33,6 +33,14 @@ local function main()
       if not shellf then
         io.write("failed loading shell: ", sherr, "\n\n")
       else
+        print("")
+
+        local motd = io.open("/etc/motd.txt", "r")
+        if motd then
+          print((motd:read("a") or ""))
+          motd:close()
+        end
+
         local exit, err = users.exec_as(uid, pw, shellf, shell, true)
         if exit ~= 0 then
           print(err)

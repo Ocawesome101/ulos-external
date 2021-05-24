@@ -1,6 +1,6 @@
 -- coreutils: clear --
 
-local args, opts = require("argutils").parse(...)
+local args, opts = require("argutil").parse(...)
 
 if opts.help then
   io.stderr:write([[

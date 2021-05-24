@@ -19,9 +19,10 @@ end
 -- prevent some pollution of _G
 local prog_env = {}
 for k, v in pairs(_G) do prog_env[k] = v end
+prog_env.require = require -- ????
 setmetatable(prog_env, {__index = _G})
 
-if opts.v then
+if opts.i then
   if _VERSION == "Lua 5.2" then
     io.write(_VERSION, "  Copyright (C) 1994-2015 Lua.org, PUC-Rio\n")
   else
@@ -40,7 +41,7 @@ for i=1, #args, 1 do
 end
 
 if opts.e then
-  local ok, err = load(opts.e, "=(command line)", "bt", env)
+  local ok, err = load(opts.e, "=(command line)", "bt", prog_env)
   if not ok then
     io.stderr:write(err, "\n")
     if not opts.i then os.exit(1) end
@@ -59,9 +60,9 @@ if opts.i then
   while true do
     io.write("> ")
     local eval = io.read("l")
-    local ok, err = load(eval, "=stdin", "bt", env)
+    local ok, err = load(eval, "=stdin", "bt", prog_env)
     if not ok then
-      ok, err = load("return " ..eval, "=stdin", "bt", env)
+      ok, err = load("return " ..eval, "=stdin", "bt", prog_env)
     end
     if not ok then
       io.stderr:write(err, "\n")

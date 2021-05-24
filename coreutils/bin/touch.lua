@@ -1,6 +1,7 @@
 -- coreutils: touch --
 
 local path = require("path")
+local ftypes = require("filetypes")
 local filesystem = require("filesystem")
 
 local args, opts = require("argutil").parse(...)
@@ -15,7 +16,7 @@ end
 
 for i=1, #args, 1 do
   local ok, err = filesystem.touch(path.canonical(args[i]),
-    filesystem.types.file)
+    ftypes.file)
 
   if not ok then
     io.stderr:write("touch: cannot touch '", args[i], "': ", err, "\n")
