@@ -20,6 +20,9 @@ if opts.help then
   io.stderr:write([[
 usage: ps
 Format process information from /sys/proc.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(0)
 end

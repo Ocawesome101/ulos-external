@@ -7,6 +7,9 @@ if opts.help then
 usage: cat FILE1 FILE2 ...
 Concatenate FILE(s) to standard output.  With no
 FILE, or where FILE is -, read standard input.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(0)
 end

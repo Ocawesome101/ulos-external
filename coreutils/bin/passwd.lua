@@ -22,6 +22,9 @@ Options:
 
 Note that an ACL may only be set if held by the
 current user.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(1)
 end

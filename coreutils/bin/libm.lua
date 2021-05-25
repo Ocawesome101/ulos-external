@@ -10,6 +10,9 @@ require().
     -v    be verbose
     -r    unload libraries rather than loading
           them
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
 end
 

@@ -10,6 +10,9 @@ if opts.help then
 usage: find DIRECTORY ...
 Print a tree of all files in DIRECTORY.  All
 printed file paths are absolute.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
 end
 

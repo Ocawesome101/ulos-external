@@ -19,6 +19,9 @@ Options:
   -v      Print the path of every file that is
           directly removed.
   --help  Print this help and exit.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(1)
 end

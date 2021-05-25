@@ -14,6 +14,9 @@ Options:
   -c  Print character counts.
   -l  Print line counts.
   -w  Print word counts.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(1)
 end

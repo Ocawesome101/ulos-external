@@ -15,6 +15,9 @@ Copy SOURCE(s) to DEST.
 Options:
   -r  Recurse into directories.
   -v  Be verbose.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(2)
 end

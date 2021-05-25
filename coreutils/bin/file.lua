@@ -12,6 +12,9 @@ usage: file FILE ...
    or: file [--help]
 Prints filetype information for the specified
 FILE(s).
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(0)
 end

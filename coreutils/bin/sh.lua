@@ -13,6 +13,9 @@ if shopts.help then
 usage: sh [-e]
 A Bourne-ish shell.  Mildly deprecated in favor of
 the Lisp-like SHell (lsh).
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(1)
 end

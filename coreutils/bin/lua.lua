@@ -12,6 +12,9 @@ Available options are:
   -e stat  execute string 'stat'
   -i       enter interactive mode after executing 'script'
   -l name  require library 'name' into global 'name'
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]=])
   os.exit(1)
 end

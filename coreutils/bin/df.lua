@@ -14,6 +14,9 @@ Uses information from the sysfs.
 
 Options:
   -h  Print sizes in human-readable form.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]])
   os.exit(1)
 end

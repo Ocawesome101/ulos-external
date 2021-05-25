@@ -32,8 +32,9 @@ current directory.  Sorts entries alphabetically.
                 (permissions, last modification
                 date, etc.) instead of just file
                 names.
-This implementation (c) 2021 i develop things
-under the DSLv1.
+
+ULOS Coreutils (c) 2021 Ocawesome101 under the
+DSLv2.
 ]=])
   os.exit(1)
 end
