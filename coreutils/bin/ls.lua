@@ -17,17 +17,21 @@ Lists information about file(s).  Defaults to the
 current directory.  Sorts entries alphabetically.
   -1            one file per line
   -a            show hidden files
-  --color=WHEN  if no, disable coloration;  if
-                always, force coloration even if
-                the output is not a terminal;
-                otherwise, determine automatically
-  -d            display information about a
-                directory as though it were a file
-  -h            human-readable file sizes
-  --help        display this help message and exit
-  -l            display full file information
+  --color=WHEN  If "no", disable coloration;  if
+                "always", force coloration even
+                if the standard output is not
+                connected to a terminal;
+                otherwise, decide automatically.
+  -d            Display information about a
+                directory as though it were a
+                file.
+  -h            Use human-readable file sizes.
+  --help        Display this help message and
+                exit.
+  -l            Display full file information
                 (permissions, last modification
-                date, etc.)
+                date, etc.) instead of just file
+                names.
 This implementation (c) 2021 i develop things
 under the DSLv1.
 ]=])
