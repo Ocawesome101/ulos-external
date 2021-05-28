@@ -26,5 +26,6 @@ for i=1, #args, 1 do
 
   for i=1, #tree, 1 do
     io.write(tree[i], "\n")
+    if i % 10 == 0 then coroutine.yield(0) end
   end
 end
