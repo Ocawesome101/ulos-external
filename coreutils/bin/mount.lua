@@ -57,6 +57,22 @@ end
 
 local node, path, fstype = args[1], args[2], args[3]
 
+do
+  local npath = require("path").canonical(node)
+  local data = filesystem.stat(npath)
+  if data then
+    if npath:match("/sys/") then -- the path points to somewhere the sysfs
+      if data.isDirectory then
+        node = readFile(npath .. "/address")
+      else
+        node = readFile(npath)
+      end
+    elseif not data.isDirectory then
+      node = readFile(npath)
+    end
+  end
+end
+
 if not fstype then
   local addr = component.get(node)
   if addr then
