@@ -473,6 +473,8 @@ local function processPrompt(text)
   return (text:gsub("\n", ""))
 end
 
+os.execute = processCommand
+
 while true do
   io.write(processPrompt(os.getenv("PS1")))
   local ok, err = processCommand(io.read("l"))
