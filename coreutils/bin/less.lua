@@ -14,7 +14,7 @@ end
 
 local lines = {}
 local w, h = termio.getTermSize()
-local scr = h+1
+local scr = 0
 
 local function scroll(n)
   local l
@@ -30,7 +30,6 @@ local function scroll(n)
   end
   if (not l) or #l == 0 then l = " " end
   io.write(l or " ")
-  io.flush()
 end
 
 for i=1, #args, 1 do
@@ -39,9 +38,14 @@ for i=1, #args, 1 do
   end
 end
 
-for i=1, h, 1 do
-  scroll(true)
+local function redraw()
+  io.write("\27[1;1H\27[2J")
+  for i=1, h-2, 1 do
+    io.write(lines[scr+i], "\n")
+  end
 end
+
+redraw()
 
 local prompt = string.format("\27[%d;1H\27[2K:", h)
 
@@ -61,7 +65,8 @@ while true do
   elseif key == "down" then
     scroll(true)
   elseif key == " " then
-    for i=1, h, 1 do scroll(true) end
+    scr=math.min(scr+h, #lines - h)
+    redraw()
   end
   io.write(prompt)
 end
