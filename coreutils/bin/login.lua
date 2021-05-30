@@ -11,11 +11,11 @@ end
 io.write("\27?0c\27[39;49m\nWelcome to ULOS.\n\n")
 
 local function main()
-  io.write("\27?0clogin: ")
+  io.write("\27?0c", os.getenv("HOSTNAME") or "locslhost", " login: ")
   local un = io.read("l")
-  io.write("password: \27?11c")
+  io.write("password: \27[8m")
   local pw = io.read("l")
-  io.write("\n\27?0c")
+  io.write("\n\27[m\27?0c")
   local uid = users.get_uid(un)
   if not uid then
     io.write("no such user\n\n")
