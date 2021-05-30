@@ -6,9 +6,9 @@ handler.keyBackspace = "\8"
 
 function handler.setRaw(raw)
   if raw then
-    io.write("\27?3;12c")
+    io.write("\27?3;12c\27[8m")
   else
-    io.write("\27?13;2c")
+    io.write("\27?13;2c\27[28m")
   end
 end
 

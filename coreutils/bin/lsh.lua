@@ -476,7 +476,7 @@ end
 os.execute = processCommand
 
 while true do
-  io.write(processPrompt(os.getenv("PS1")))
+  io.write("\27[0m\27?0c", processPrompt(os.getenv("PS1")))
   local ok, err = processCommand(io.read("l"))
   if not ok and err then
     io.stderr:write(err, "\n")
