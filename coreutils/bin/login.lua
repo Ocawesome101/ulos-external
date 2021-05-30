@@ -11,7 +11,7 @@ end
 io.write("\27?0c\27[39;49m\nWelcome to ULOS.\n\n")
 
 local function main()
-  io.write("\27?0c", os.getenv("HOSTNAME") or "locslhost", " login: ")
+  io.write("\27?0c", os.getenv("HOSTNAME") or "localhost", " login: ")
   local un = io.read("l")
   io.write("password: \27[8m")
   local pw = io.read("l")

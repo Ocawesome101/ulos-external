@@ -13,9 +13,8 @@ Page through FILE(s).  They will be concatenated.
 end
 
 local lines = {}
-local scr = 0
-
 local w, h = termio.getTermSize()
+local scr = h+1
 
 local function scroll(n)
   local l
@@ -40,9 +39,8 @@ for i=1, #args, 1 do
   end
 end
 
-io.write("\27[1;1H")
 for i=1, h, 1 do
-  io.write(lines[i], "\n")
+  scroll(true)
 end
 
 local prompt = string.format("\27[%d;1H\27[2K:", h)
