@@ -48,10 +48,10 @@ os.execute("mount " .. fs[tonumber(choice)] .. " /mnt")
 local dirs = {
   "bin",
   "etc",
-  "init.lua",
   "lib",
   "sbin",
-  "usr"
+  "usr",
+  "init.lua", -- copy this last for safety reasons
 }
 
 for i, dir in ipairs(dirs) do
