@@ -1,0 +1,12 @@
+*{NAME}
+  env - run a program in a modified environment
+
+*{SYNOPSIS}
+
+*{DESCRIPTION}
+
+*{COPYRIGHT}
+  ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.
+
+*{REPORTING BUGS}
+  Bugs should be reported at @{https://github.com/ocawesome101/oc-ulos/issues}.

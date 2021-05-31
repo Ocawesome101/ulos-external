@@ -21,13 +21,15 @@ local colors = {
   bold = "97",
   regular = "39",
   italic = "36",
-  link = "94"
+  link = "94",
+  file = "93"
 }
 
 local patterns = {
   {"%*(%b{})", "bold"},
   {"%$(%b{})", "italic"},
-  {"@(%b{})", "link"}
+  {"@(%b{})", "link"},
+  {"#(%b{})", "file"}
 }
 
 opts.wrap = tonumber(opts.wrap)
@@ -42,7 +44,20 @@ for i=1, #args, 1 do
   handle:close()
 
   if opts.wrap then
-    -- TODO
+    local rdat = ""
+    repeat
+      local n = data:find("\n")
+      if n > opts.wrap then
+        local text = data:sub(1, opts.wrap)
+        data = data:sub(#text + 1)
+        rdat = rdat .. text .. "\n"
+      else
+        local text = data:sub(1, n)
+        data = data:sub(#text + 1)
+        rdat = rdat .. text
+      end
+    until #data == 0
+    data = rdat
   end
 
   for i=1, #patterns, 1 do
