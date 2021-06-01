@@ -1,8 +1,11 @@
 *{NAME}
+  pwd - print working directory
 
 *{SYNOPSIS}
+  ${pwd}
 
 *{DESCRIPTION}
+  ${pwd} prints the process working directory and exits.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

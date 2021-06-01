@@ -1,8 +1,11 @@
 *{NAME}
+  touch - create a file
 
 *{SYNOPSIS}
+  ${touch} *{FILE ...}
 
 *{DESCRIPTION}
+  For each *{FILE}, if it does not exist, ${touch} will create it.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

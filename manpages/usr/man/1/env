@@ -2,8 +2,21 @@
   env - run a program in a modified environment
 
 *{SYNOPSIS}
+  ${env} [*{options}] *{PROGRAM ...}
 
 *{DESCRIPTION}
+  Executes programs with the specified options.  Primarily for compatibility.
+
+  Supported options:
+
+  *{--unset=KEY,KEY,...}
+    For each *{KEY}, unsets that variable in the program's environment.
+
+  *{--chdir=DIR}
+    Sets the program's working directory to *{DIR}.
+
+  *{-i}
+    Empties the program's environment.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

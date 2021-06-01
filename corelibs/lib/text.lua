@@ -76,4 +76,34 @@ function lib.mkcolumns(items, args)
   return table.concat(lines, "\n")
 end
 
+-- wrap text, ignoring VT100 escape codes but preserving them.
+function lib.wrap(text, width)
+  checkArg(1, text, "string")
+  checkArg(2, width, "number")
+  local whitespace = "[ \t\n\r]"
+
+  local odat = ""
+
+  local len = 0
+  local invt = false
+  for c in text:gmatch(".") do
+    odat = odat .. c
+    if invt then
+      if c:match("[a-zA-Z]") then invt = false end
+    elseif c == "\27" then
+      invt = true
+    else
+      len = len + 1
+      if c == "\n" then
+        len = 0
+      elseif len > width then
+        odat = odat .. "\n"
+        len = 0
+      end
+    end
+  end
+
+  return odat
+end
+
 return lib

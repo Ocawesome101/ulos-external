@@ -1,8 +1,11 @@
 *{NAME}
+  ps - list process information
 
 *{SYNOPSIS}
+  ${ps}
 
 *{DESCRIPTION}
+ ${ps} formats process information from #{/sys/proc}.  It does not use the *{process}(*{2}) API.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

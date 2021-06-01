@@ -1,8 +1,21 @@
 *{NAME}
+  rm - remove files
 
 *{SYNOPSIS}
+  ${rm} [*{-rfv}] *{FILE ...}
 
 *{DESCRIPTION}
+  ${rm} removes all specified *{FILE}s.
+
+  Options:
+    *{-r}
+      Recurse into directories.  Required on most filesystems to remove directories.
+
+    *{-f}
+      Do not exit on failure.
+
+    *{-v}
+      Be verbose.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

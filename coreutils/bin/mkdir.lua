@@ -34,7 +34,7 @@ for i=1, #args, 1 do
     if opts.p then
       local segments = path.split(parent)
       for i, segment in ipairs(segments) do
-        local ok, err = filesystem.touch(path.clean(
+        local ok, err = filesystem.touch(path.canonical(
           table.concat(segments, "/", 1, i)), ftypes.directory)
         if not ok then
           io.stderr:write("mkdir: cannot create directory '", args[i], ": ",

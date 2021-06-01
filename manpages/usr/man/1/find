@@ -5,7 +5,9 @@
   ${find} *{DIRECTORY ...}
 
 *{DESCRIPTION}
-  ${find} prints a tree of all files under each *{DIRECTORY}.  All printed file paths are absolute.
+  ${find} prints a tree of all files under each *{DIRECTORY}, with one file per line.  All printed file paths are absolute.
+
+  No command-line options are supported.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

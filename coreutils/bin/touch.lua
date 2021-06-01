@@ -6,7 +6,7 @@ local filesystem = require("filesystem")
 
 local args, opts = require("argutil").parse(...)
 
-if opts.help then
+if #args == 0 or opts.help then
   io.stderr:write([[
 usage: touch FILE ...
 Create the specified FILE(s) if they do not exist.

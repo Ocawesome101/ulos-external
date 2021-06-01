@@ -1,8 +1,13 @@
 *{NAME}
+  mount - mount and unmount filesystems
 
 *{SYNOPSIS}
+  ${mount}
+  ${mount} *{NODE LOCATION} [*{FSTYPE}]
+  ${mount} -u *{PATH}
 
 *{DESCRIPTION}
+  When executed with no arguments, ${mount} will print filesystem mount information equivalent to `*{cat /sys/mounts}'.  When executed with *{NODE} and *{LOCATION}, ${mount} will either use the *{FSTYPE} argument or attempt to automatically determine the filesystem type.  When executed with the *{-u} option, ${mount} will behave like other systems' ${umount}.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

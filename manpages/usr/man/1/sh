@@ -1,8 +1,13 @@
 *{NAME}
+  sh - bourne-ish shell
 
 *{SYNOPSIS}
+  ${sh} [*{-e}]
 
 *{DESCRIPTION}
+  ${sh} is a Bourne-shell clone.  It is deprecated in favor of *{lsh}(*{1}).
+
+  There is half-implemented scripting and piping support.  ${sh} is unsupported and may be removed in a future release.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

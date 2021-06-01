@@ -10,7 +10,7 @@
   The Up and Down arrows will scroll by one line.  The Space-bar will scroll one screenful down.  The Q key will exit ${less}.
 
 *{BUGS}
-  Lines longer than the screen is wide will cause incorrect behavior.
+  Lines longer than the screen width will cause incorrect behavior.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.

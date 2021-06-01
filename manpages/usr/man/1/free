@@ -5,7 +5,7 @@
   ${free} [*{-h}]
 
 *{DESCRIPTION}
-  Prints system memory usage information.  If *{-h} is specified, sizes will be printed human-readably.
+  Prints system memory usage information.  If *{-h} is specified, sizes will be printed human-readably.  Otherwise, they will be printed in bytes.
 
 *{COPYRIGHT}
   ULOS Coreutils copyright (c) 2021 Ocawesome101 under the DSLv2.
