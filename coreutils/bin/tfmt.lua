@@ -24,14 +24,28 @@ local colors = {
   regular = "39",
   italic = "36",
   link = "94",
-  file = "93"
+  file = "93",
+  red = "91",
+  green = "92",
+  yellow = "93",
+  blue = "94",
+  magenta = "95",
+  cyan = "96",
+  white = "97"
 }
 
 local patterns = {
   {"%*(%b{})", "bold"},
   {"%$(%b{})", "italic"},
   {"@(%b{})", "link"},
-  {"#(%b{})", "file"}
+  {"#(%b{})", "file"},
+  {"red(%b{})", "red"},
+  {"green(%b{})", "green"},
+  {"yellow(%b{})", "yellow"},
+  {"blue(%b{})", "blue"},
+  {"magenta(%b{})", "magenta"},
+  {"cyan(%b{})", "cyan"},
+  {"white(%b{})", "white"},
 }
 
 opts.wrap = tonumber(opts.wrap)
