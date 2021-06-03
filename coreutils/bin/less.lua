@@ -1,5 +1,6 @@
 -- coreutils: more --
 
+local text = require("text")
 local termio = require("termio")
 
 local args, opts = require("argutil").parse(...)
@@ -41,7 +42,7 @@ end
 local function redraw()
   io.write("\27[1;1H\27[2J")
   for i=1, h-2, 1 do
-    io.write(lines[scr+i], "\n")
+    io.write(lines[scr+i] or " ", "\n")
   end
 end
 

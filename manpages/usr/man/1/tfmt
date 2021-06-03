@@ -11,6 +11,9 @@
     *{--wrap=N}
       Pre-wrap the output text at *{N} characters.  If this is not specified, the output text will not be pre-wrapped.
 
+    *{--output=FILE}
+      Send output to *{FILE} rather than the standard output.
+
 *{COPYRIGHT}
   ULOS Core Utilities copyright (c) 2021 Ocawesome101 under the DSLv2.
 

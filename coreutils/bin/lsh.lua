@@ -474,6 +474,9 @@ local function processPrompt(text)
 end
 
 os.execute = processCommand
+os.remove = function(file)
+  return fs.remove(paths.canonical(file))
+end
 
 while true do
   io.write("\27[0m\27?0c", processPrompt(os.getenv("PS1")))

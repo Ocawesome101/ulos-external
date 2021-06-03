@@ -11,7 +11,9 @@ Format FILE(s) according to a simple format
 specification.
 
 Options:
-  --wrap=WD   Wrap output text at WD characters.
+  --wrap=WD       Wrap output text at WD
+                  characters.
+  --output=FILE   Send output to file FILE.
 
 ULOS Coreutils copyright (c) 2021 Ocawesome101
 under the DSLv2.
@@ -50,6 +52,17 @@ local patterns = {
 
 opts.wrap = tonumber(opts.wrap)
 
+local output = io.output()
+if opts.output and type(opts.output) == "string" then
+  local handle, err = io.open(opts.output, "w")
+  if not handle then
+    io.stderr:write("tfmt: cannot open ", opts.output, ": ", err, "\n")
+    os.exit(1)
+  end
+
+  output = handle
+end
+
 for i=1, #args, 1 do
   local handle, err = io.open(args[i], "r")
   if not handle then
@@ -70,5 +83,10 @@ for i=1, #args, 1 do
     data = text.wrap(data, opts.wrap)
   end
 
-  print(data)
+  output:write(data .. "\n")
+  output:flush()
+end
+
+if opts.output then
+  output:close()
 end

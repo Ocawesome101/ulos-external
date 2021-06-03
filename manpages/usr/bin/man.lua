@@ -1,6 +1,9 @@
 -- manpages: man --
 
 local fs = require("filesystem")
+local tio = require("termio")
+
+local w, h = tio.getTermSize()
 
 local page_path = "/usr/man/%d/%s"
 
@@ -30,7 +33,8 @@ if section then table.insert(sections, 1, section) end
 for i, section in ipairs(sections) do
   local try = string.format(page_path, section, page)
   if fs.stat(try) then
-    os.execute("into /tmp/manfmt (tfmt " .. try .. ")")
+    os.remove("/tmp/manfmt")
+    os.execute("tfmt --output=/tmp/manfmt --wrap=" .. w .. " " .. try)
     os.execute("less /tmp/manfmt")
     os.exit(0)
   end
