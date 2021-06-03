@@ -1,11 +1,26 @@
 *{NAME}
-  
+  users - user management
 
 *{DESCRIPTION}
-  
+  This API provides facilities for simple managements of users under Cynosure.
+
+  All functions return magenta{nil} and an error message on failure.
 
 *{FUNCTIONS}
+  blue{prime}(*{data}:green{table}): magenta{boolean}
+    Used internally.  Undocumented.
+
+  blue{authenticate}(*{uid}:magenta{number}, *{pass}:red{string}): magenta{boolean}
+
+  blue{exec_as}(*{uid}:magenta{number}, *{pass}:red{string}, *{func}:blue{function}[, *{pname}:red{string}][, *{wait}:magenta{boolean}])
   
+  blue{get_uid}(*{uname}:red{string}): red{string}
+
+  blue{attributes}(*{uid}:magenta{number}): green{table}
+
+  blue{usermod}(*{attributes}:green{table}): magenta{boolean}
+
+  blue{remove}(*{uid}:magenta{number})
 
 *{COPYRIGHT}
   Cynosure kernel copyright (c) 2021 Ocawesome101 under the DSLv2.

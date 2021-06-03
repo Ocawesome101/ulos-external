@@ -1,5 +1,5 @@
 *{NAME}
-  
+  syslog - get a handle to the system log
 
 *{DESCRIPTION}
   
