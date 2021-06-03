@@ -96,7 +96,7 @@ function lib.wrap(text, width)
       len = len + 1
       if c == "\n" then
         len = 0
-      elseif len > width then
+      elseif len >= width then
         odat = odat .. "\n"
         len = 0
       end
