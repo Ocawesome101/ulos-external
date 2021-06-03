@@ -1,4 +1,4 @@
--- coreutils: more --
+-- coreutils: less --
 
 local text = require("text")
 local termio = require("termio")
@@ -18,19 +18,13 @@ local w, h = termio.getTermSize()
 local scr = 0
 
 local function scroll(n)
-  local l
-  if n and scr+h < #lines then
-    scr=scr+1
-    local ln = lines[scr+h-1]
-    io.write("\27[", h, ";H", #ln==0 and" "or ln, "\27[S\27[", h, ";1H")
-    l = lines[scr+h]
+  if n then
+    if scr+h < #lines then
+      scr=scr+1
+    end
   elseif scr > 0 then
     scr=scr-1
-    io.write("\27[T\27[1H")
-    l = lines[scr]
   end
-  if (not l) or #l == 0 then l = " " end
-  io.write(l or " ")
 end
 
 for i=1, #args, 1 do
@@ -40,12 +34,13 @@ for i=1, #args, 1 do
 end
 
 local function redraw()
-  io.write("\27[1;1H\27[2J")
-  for i=1, h-2, 1 do
-    io.write(lines[scr+i] or " ", "\n")
+  io.write("\27[1;1H")
+  for i=1, h-1, 1 do
+    io.write("\27[2K", lines[scr+i] or "", "\n")
   end
 end
 
+io.write("\27[2J")
 redraw()
 
 local prompt = string.format("\27[%d;1H\27[2K:", h)
@@ -67,7 +62,9 @@ while true do
     scroll(true)
   elseif key == " " then
     scr=math.min(scr+h, #lines - h)
-    redraw()
+  elseif key == "/" then
+    local search = io.read()
   end
+  redraw()
   io.write(prompt)
 end
