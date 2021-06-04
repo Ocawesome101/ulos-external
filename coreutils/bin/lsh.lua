@@ -119,7 +119,7 @@ local processCommand
 -- Call a function, return its exit status,
 -- and if 'sub' is true return its output.
 local sub = false
-local function call(name, func, args)
+local function call(name, func, args, fio)
   local fauxio
   local function proc()
     local old_exit = os.exit
@@ -158,6 +158,8 @@ local function call(name, func, args)
       close = function() return true end
     }, {__name = "FILE*"})
   end
+
+  if fio then fauxio = fio end
 
   local pid = process.spawn {
     func = proc,
@@ -272,7 +274,13 @@ local builtins = {
   ["="] = function(a, b) os.exit(a == b and 0 or 1) end,
   ["into"] = function(f, ...)
     if not f then
-      io.stderr:write("into: usage: into FILE ...\nWrite all arguments to FILE.\n")
+      io.stderr:write([[
+into: usage: into [options] FILE ...
+Write all arguments to FILE.
+
+Options:
+  -p  Execute the arguments as a program rather
+      than taking them literally.]])
     end
     local name, mode = f:match("(.-):(.)")
     name = name or f
@@ -281,7 +289,12 @@ local builtins = {
       io.stderr:write("into: ", name, ": ", err, "\n")
       os.exit(1)
     end
-    handle:write(table.concat(table.pack(...), "\n"))
+    if args[1] == "-p" then
+      handle:write(processCommand(table.concat(args, " ", 2, #args), false,
+        handle))
+    else
+      handle:write(table.concat(table.pack(...), "\n"))
+    end
     handle:close()
   end,
   ["seq"] = function(start, finish)
@@ -293,7 +306,7 @@ local builtins = {
 
 local shebang_pattern = "^#!(/.-)\n"
 
-local function loadCommand(path)
+local function loadCommand(path, h)
   local handle, err = io.open(path, "r")
   if not handle then return nil, path .. ": " .. err end
   local data = handle:read("a")
@@ -301,10 +314,10 @@ local function loadCommand(path)
   if data:match(shebang_pattern) then
     local shebang = data:match(shebang_pattern)
     if not shebang:match("lua") then
-      local executor = loadCommand(shebang)
+      local executor = loadCommand(shebang, h)
       return function(...)
         return call(table.concat({shebang, path, ...}, " "), executor,
-          {path, ...})
+          {path, ...}, h)
       end
     else
       data = data:gsub(shebang_pattern, "")
@@ -315,7 +328,7 @@ local function loadCommand(path)
   end
 end
 
-local function resolveCommand(cmd)
+local function resolveCommand(cmd, h)
   local path = os.getenv("PATH")
 
   local ogcmd = cmd
@@ -332,13 +345,13 @@ local function resolveCommand(cmd)
 
   local try = paths.canonical(cmd)
   if fs.stat(try) then
-    return loadCommand(try)
+    return loadCommand(try, h)
   end
 
   for search in path:gmatch("[^:]+") do
     local try = paths.canonical(paths.concat(search, cmd))
     if fs.stat(try) then
-      return loadCommand(try)
+      return loadCommand(try, h)
     end
   end
 
@@ -348,15 +361,15 @@ end
 local defined = {}
 
 local processTokens
-local function eval(set)
+local function eval(set, h)
   local osb = sub
   sub = set.getOutput or sub
-  local ok, err = processTokens(set)
+  local ok, err = processTokens(set, false, h)
   sub = osb
   return ok, err
 end
 
-processTokens = function(tokens, noeval)
+processTokens = function(tokens, noeval, handle)
   local sequence = {}
 
   if not tokens.next then tokens = setmetatable({i=1,tokens=tokens},
@@ -390,24 +403,24 @@ processTokens = function(tokens, noeval)
     defined[sequence[2]] = sequence[3]
     sequence = ""
   elseif sequence[1] == "if" then
-    local ok, err = eval(sequence[2])
+    local ok, err = eval(sequence[2], handle)
     if not ok then return nil, err end
     local _ok, _err
     if err == 0 then
-      _ok, _err = eval(sequence[3])
+      _ok, _err = eval(sequence[3], handle)
     elseif sequence[4] then
-      _ok, _err = eval(sequence[4])
+      _ok, _err = eval(sequence[4], handle)
     else
       _ok = ""
     end
     return _ok, _err
   elseif sequence[1] == "for" then
-    local iter, err = eval(sequence[3])
+    local iter, err = eval(sequence[3], handle)
     if not iter then return nil, err end
     local result = {}
     for i, v in ipairs(iter) do
       shenv[sequence[2]] = v
-      local ok, _err = eval(sequence[4])
+      local ok, _err = eval(sequence[4], handle)
       if not ok then return nil, _err end
       result[#result+1] = ok
     end
@@ -416,11 +429,11 @@ processTokens = function(tokens, noeval)
   else
     for i=1, #sequence, 1 do
       if type(sequence[i]) == "table" then
-        local ok, err = eval(sequence[i])
+        local ok, err = eval(sequence[i], handle)
         if not ok then return nil, err end
         sequence[i] = ok
       elseif defined[sequence[i]] then
-        local ok, err = eval(defined[sequence[i]])
+        local ok, err = eval(defined[sequence[i]], handle)
         if not ok then return nil, err end
         sequence[i] = ok
       end
@@ -444,11 +457,11 @@ processTokens = function(tokens, noeval)
     -- now, execute it
     local name = sequence[1]
     if not name then return true end
-    local ok, err = resolveCommand(table.remove(sequence, 1))
+    local ok, err = resolveCommand(table.remove(sequence, 1), handle)
     if not ok then return nil, err end
     local old = sub
     sub = sequence.getOutput or sub
-    local ex, out = call(name, ok, sequence)
+    local ex, out = call(name, ok, sequence, handle)
     sub = old
 
     if out then
@@ -461,8 +474,8 @@ processTokens = function(tokens, noeval)
   return sequence
 end
 
-processCommand = function(text, ne)
-  return processTokens(tokenize(text), ne)
+processCommand = function(text, ne, h)
+  return processTokens(tokenize(text), ne, h)
 end
 
 local function processPrompt(text)
