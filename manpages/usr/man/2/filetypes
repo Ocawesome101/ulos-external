@@ -2,10 +2,14 @@
   filetypes - file types
 
 *{DESCRIPTION}
-  
-
-*{FUNCTIONS}
-  
+  ${filetypes} is a table of supported file types:
+    
+    green{{}
+      *{file} = magenta{number},
+      *{directory} = magenta{number},
+      *{link} = magenta{number},
+      *{special} = magenta{number},
+    green{}}
 
 *{COPYRIGHT}
   Cynosure kernel copyright (c) 2021 Ocawesome101 under the DSLv2.

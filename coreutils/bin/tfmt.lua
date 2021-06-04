@@ -37,17 +37,17 @@ local colors = {
 }
 
 local patterns = {
-  {"%*(%b{})", "bold"},
-  {"%$(%b{})", "italic"},
-  {"@(%b{})", "link"},
-  {"#(%b{})", "file"},
-  {"red(%b{})", "red"},
-  {"green(%b{})", "green"},
-  {"yellow(%b{})", "yellow"},
-  {"blue(%b{})", "blue"},
-  {"magenta(%b{})", "magenta"},
-  {"cyan(%b{})", "cyan"},
-  {"white(%b{})", "white"},
+  {"%*({..-})", "bold"},
+  {"%$({..-})", "italic"},
+  {"@({..-})", "link"},
+  {"#({..-})", "file"},
+  {"red({..-})", "red"},
+  {"green({..-})", "green"},
+  {"yellow({..-})", "yellow"},
+  {"blue({..-})", "blue"},
+  {"magenta({..-})", "magenta"},
+  {"cyan({..-})", "cyan"},
+  {"white({..-})", "white"},
 }
 
 opts.wrap = tonumber(opts.wrap)

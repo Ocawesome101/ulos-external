@@ -61,7 +61,7 @@ while true do
   elseif key == "down" then
     scroll(true)
   elseif key == " " then
-    scr=math.min(scr+h, #lines - h)
+    scr=math.min(scr+h, #lines - h - 1)
   elseif key == "/" then
     local search = io.read()
   end
