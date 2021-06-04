@@ -20,6 +20,7 @@
 local process = require("process")
 local fs = require("filesystem")
 local paths = require("path")
+local pipe = require("pipe")
 
 local args, opts = require("argutil").parse(...)
 
@@ -272,7 +273,9 @@ local builtins = {
   ["/"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
   ["*"] = function(a, b) print((tonumber(a) or 0) + (tonumber(b) or 0)) end,
   ["="] = function(a, b) os.exit(a == b and 0 or 1) end,
-  ["into"] = function(f, ...)
+  ["into"] = function(...)
+    local args = table.pack(...)
+    local f = args[1] ~= "-p" and args[1] or args[2]
     if not f then
       io.stderr:write([[
 into: usage: into [options] FILE ...
@@ -290,8 +293,8 @@ Options:
       os.exit(1)
     end
     if args[1] == "-p" then
-      handle:write(processCommand(table.concat(args, " ", 2, #args), false,
-        handle))
+      processCommand(table.concat(args, " ", 3, #args), false,
+        handle)
     else
       handle:write(table.concat(table.pack(...), "\n"))
     end
@@ -328,6 +331,11 @@ local function loadCommand(path, h)
   end
 end
 
+local extensions = {
+  "lua",
+  "lsh"
+}
+
 local function resolveCommand(cmd, h)
   local path = os.getenv("PATH")
 
@@ -337,21 +345,27 @@ local function resolveCommand(cmd, h)
     return builtins[cmd]
   end
 
-  -- if no file extension, then add .lua
-  -- TODO: perhaps implement support/handling for longer file extensions?
-  if not cmd:match("%.[^/%.][^/%.]?[^/%.]?$") then
-    cmd = cmd .. ".lua"
-  end
-
   local try = paths.canonical(cmd)
   if fs.stat(try) then
     return loadCommand(try, h)
+  end
+
+  for k, v in pairs(extensions) do
+    if fs.stat(try .. "." .. v) then
+      return loadCommand(try .. "." .. v, h)
+    end
   end
 
   for search in path:gmatch("[^:]+") do
     local try = paths.canonical(paths.concat(search, cmd))
     if fs.stat(try) then
       return loadCommand(try, h)
+    end
+
+    for k, v in pairs(extensions) do
+      if fs.stat(try .. "." .. v) then
+        return loadCommand(try .. "." .. v)
+      end
     end
   end
 
@@ -475,7 +489,12 @@ processTokens = function(tokens, noeval, handle)
 end
 
 processCommand = function(text, ne, h)
-  return processTokens(tokenize(text), ne, h)
+  -- TODO: do this correctly
+  local result = {}
+  for chunk in text:gmatch("[^;]+") do 
+    result = table.pack(processTokens(tokenize(chunk), ne, h))
+  end
+  return table.unpack(result)
 end
 
 local function processPrompt(text)
@@ -489,6 +508,18 @@ end
 os.execute = processCommand
 os.remove = function(file)
   return fs.remove(paths.canonical(file))
+end
+io.popen = function(command, mode)
+  checkArg(1, command, "string")
+  checkArg(2, mode, "string", "nil")
+  mode = mode or "r"
+  assert(mode == "r" or mode == "w", "bad mode to io.popen")
+
+  local handle = pipe.create()
+
+  processCommand(command)
+
+  return handle
 end
 
 while true do

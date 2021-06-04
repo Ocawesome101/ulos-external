@@ -30,16 +30,17 @@ for i=1, #args, 1 do
     io.stderr:write("mkdir: ", args[i], ": file already exists\n")
     os.exit(1)
   elseif not exists then
-    local parent = path.clean(table.concat(path.split(dir), "/", 1, -2))
+    local seg = path.split(dir)
+    local parent = path.clean(table.concat(seg, "/", 1, #seg - 1))
     if opts.p then
       local segments = path.split(parent)
       for i, segment in ipairs(segments) do
-        local ok, err = filesystem.touch(path.canonical(
+        local ok, err = filesystem.touch(path.canonical("/"..
           table.concat(segments, "/", 1, i)), ftypes.directory)
         if not ok then
           io.stderr:write("mkdir: cannot create directory '", args[i], ": ",
             err, "\n")
-          os.exit(2)
+          --os.exit(2)
         end
       end
     end
