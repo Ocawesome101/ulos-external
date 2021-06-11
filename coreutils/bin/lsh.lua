@@ -283,7 +283,9 @@ Write all arguments to FILE.
 
 Options:
   -p  Execute the arguments as a program rather
-      than taking them literally.]])
+      than taking them literally.
+]])
+      os.exit(1)
     end
     local name, mode = f:match("(.-):(.)")
     name = name or f
