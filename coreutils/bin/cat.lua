@@ -34,7 +34,7 @@ for i=1, #args, 1 do
     local n = 0
     for line in handle:lines("L") do
       io.write(line)
-      if n >= 10 then os.sleep(0)n = 0 end
+ --     if n >= 10 then os.sleep(0)n = 0 end
       n = n + 1
     end
     if handle ~= io.input() then handle:close() end
