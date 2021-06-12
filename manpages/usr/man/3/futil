@@ -2,7 +2,7 @@
   futil - filesystem utilities
 
 *{DESCRIPTION}
-  $[futil} provides certain advanced filesystem-related functions.
+  ${futil} provides certain advanced filesystem-related functions.
 
 *{FUNCTIONS}
   blue{tree}(*{dir}:red{string}[, *{modify}:green{table}])
