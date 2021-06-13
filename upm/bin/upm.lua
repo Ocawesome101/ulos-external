@@ -2,8 +2,11 @@
 
 local fs = require("filesystem")
 local tree = require("futil").tree
-local db = require("upmdb")
+local config = require("config").brackets
 
 local args, opts = require("argutil").parse(...)
 
-local
+
+
+local function install()
+end
