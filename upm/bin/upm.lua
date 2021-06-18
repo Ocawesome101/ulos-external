@@ -3,8 +3,10 @@
 local fs = require("filesystem")
 local path = require("path")
 local tree = require("futil").tree
+local mtar = require("mtar")
 local config = require("config")
 local network = require("network")
+local filetypes = require("filetypes")
 
 local args, opts = require("argutil").parse(...)
 
@@ -16,6 +18,9 @@ cfg.General.cacheDirectory = cfg.General.cacheDirectory or "/etc/upm/cache"
 cfg.Repositories = cfg.Repositories or {main = "https://oz-craft.pickardayune.com/upm/main/"}
 
 config.bracket:save("/etc/upm.cfg", cfg)
+
+if type(opts.root) ~= "string" then opts.root = "/" end
+opts.root = path.canonical(opts.root)
 
 local usage = [[
 UPM - the ULOS Package Manager
@@ -38,6 +43,7 @@ Available COMMANDs:
 
 Available options:
   -q            Be quiet;  no log output.
+  -v            Be verbose;  overrides -q.
   --root=PATH   Treat PATH as the root filesystem
                 instead of /.
 ]]
@@ -49,7 +55,7 @@ local pfx = {
 }
 
 local function log(...)
-  if not opts.q then
+  if opts.v or not opts.q then
     io.stderr:write(...)
     io.stderr:write("\n")
   end
@@ -79,20 +85,75 @@ local function search(name)
       log(pfx.warn, "list ", k, " is nonexistent; run 'upm update' to refresh")
     else
       if data.packages[name] then
+        return data.packages[name]
       end
     end
   end
+  exit("package ", name, " not found")
 end
 
 local function download(url, dest)
+  log("downloading ", url, " as ", dest)
+  local out, err = io.open(dest, "w")
+  if not out then
+    exit(dest .. ": " .. err)
+  end
+
   local handle, err = network.request(url)
   if not handle then
+    out:close() -- just in case
     exit(err)
   end
+
+  repeat
+    local chunk = handle:read(2048)
+    if chunk then out:write(chunk) end
+  until not chunk
+  handle:close()
+  out:close()
 end
 
-local function extract()
+local function extract(package)
+  log(pfx.info, "extracting ", package)
+  local base, err = io.open(package, "r")
+  if not base then
+    exit(package .. ": " .. err)
+  end
+  local stream = mtar.unarchive(base)
+  for file, data in function() return stream:readfile() end do
+    if opts.v then
+      log("  ", pfx.info, "extract file: ", file)
+    end
+    local absolute = path.concat(opts.root, file)
+    local segments = path.split(absolute)
+    for i=1, #segments - 1, 1 do
+      local create = table.concat(segments, 1, i, "/")
+      local ok, err = fs.touch(create, filetypes.directory)
+      if not ok and err then
+        log(pfx.err, "failed to create directory " .. create .. ": " .. err)
+        exit("leaving any already-created files - manual cleanup may be required!")
+      end
+    end
+    local handle, err = io.open(absolute, "w")
+    if not handle then
+      exit(absolute .. ": " .. err)
+    end
+    handle:write(data)
+    handle:close()
+  end
+  stream:close()
+  log(pfx.info, "ok")
 end
 
-local function install(file)
+local function install_package(name)
+  local data, err = config.table:load(path.concat(cfg.General.cacheDirectory, name .. ".list"))
+  if not data then
+    exit("failed reading metadata for package " .. name .. ": " .. err)
+  end
+  extract(path.concat(cfg.General.cacheDirectory, name .. ".mtar"))
+end
+
+if opts.help then
+  io.stderr:write(usage)
+  os.exit(1)
 end
