@@ -120,7 +120,9 @@ local function extract(package)
     exit(package .. ": " .. err)
   end
   local stream = mtar.unarchive(base)
+  local files = {}
   for file, data in function() return stream:readfile() end do
+    files[#files+1] = file
     if opts.v then
       log("  ", pfx.info, "extract file: ", file)
     end
