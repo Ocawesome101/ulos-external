@@ -39,7 +39,7 @@ local function redraw()
       io.write(string.format("\27[%d;1H%s\27[K", i, buffer[n] or ""))
     end
   end
-  status(string.format("%s | ^Q=quit ^W=write ^F=find | %d", file:sub(-16), cl))
+  status(string.format("%s | ^W=quit ^S=save ^F=find | %d", file:sub(-16), cl))
   io.write(string.format("\27[%d;%dH",
     cl - scroll.h, math.max(1, math.min(#buffer[cl] - cp + 1, w))))
 end
@@ -56,13 +56,14 @@ local function sscroll(up)
   end
 end
 
-local function processKey(key, flags)
+local processKey
+processKey = function(key, flags)
   flags = flags or {}
   if flags.ctrl then
-    if key == "q" then
+    if key == "w" then
       io.write("\27[2J\27[1;1H")
       os.exit()
-    elseif key == "w" then
+    elseif key == "s" then
       local handle, err = io.open(file, "w")
       if not handle then
         status(err)
@@ -90,13 +91,16 @@ local function processKey(key, flags)
       io.flush()
       sleep(1)
     elseif key == "m" then
-      table.insert(buffer, cl + 1, "\n")
+      table.insert(buffer, cl + 1, "")
       processKey("down")
       cache = {}
     end
   elseif not flags.alt then
     if key == "backspace" or key == "delete" or key == "\8" then
-      if cp == 0 and #buffer[cl] > 0 then
+      if #buffer[cl] == 0 then
+        processKey("up")
+        table.remove(buffer, cl + 1)
+      elseif cp == 0 and #buffer[cl] > 0 then
         buffer[cl] = buffer[cl]:sub(1, -2)
         cache[cl] = false
       elseif cp < #buffer[cl] then
