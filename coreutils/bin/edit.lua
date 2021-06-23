@@ -100,6 +100,8 @@ processKey = function(key, flags)
       if #buffer[cl] == 0 then
         processKey("up")
         table.remove(buffer, cl + 1)
+        cp = 0
+        cache = {}
       elseif cp == 0 and #buffer[cl] > 0 then
         buffer[cl] = buffer[cl]:sub(1, -2)
         cache[cl] = false
