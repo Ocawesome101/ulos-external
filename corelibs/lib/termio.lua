@@ -64,7 +64,7 @@ end
 
 function lib.readKey()
   getHandler().setRaw(true)
-  local data = io.read(1)
+  local data = io.stdin:read(1)
   local key, flags
 
   if data == "\27" then
@@ -97,7 +97,7 @@ function lib.readKey()
     key = data
   elseif data:byte() == (getHandler().keyBackspace or 127) then
     key = "backspace"
-  elseif data:byte() == (getHandler().keyDelete) then
+  elseif data:byte() == (getHandler().keyDelete or 8) then
     key = "delete"
   else
     key = getChar(data)

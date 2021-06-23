@@ -2,7 +2,7 @@
 
 local handler = {}
 
-handler.keyBackspace = "\8"
+handler.keyBackspace = 8
 
 function handler.setRaw(raw)
   if raw then
