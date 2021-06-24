@@ -22,6 +22,14 @@ config.bracket:save("/etc/upm.cfg", cfg)
 if type(opts.root) ~= "string" then opts.root = "/" end
 opts.root = path.canonical(opts.root)
 
+-- create directories
+os.execute("mkdir -p " .. path.concat(opts.root, cfg.General.dataDirectory))
+os.execute("mkdir -p " .. path.concat(opts.root, cfg.General.cacheDirectory))
+
+if opts.root ~= "/" then
+  config.bracket:save(path.concat(opts.root, "/etc/upm.cfg"), cfg)
+end
+
 local usage = "\
 UPM - the ULOS Package Manager\
 \
@@ -68,8 +76,21 @@ end
 
 local installed, ipath
 do
-  ipath = path.concat(cfg.General.dataDirectory, "installed.list")
+  ipath = path.concat(opts.root, cfg.General.dataDirectory, "installed.list")
+
+  local ilist = path.concat(opts.root, cfg.General.dataDirectory, "installed.list")
+  
+  if not fs.stat(ilist) then
+    local handle, err = io.open(ilist, "w")
+    if not handle then
+      exit("cannot create installed.list: " .. err)
+    end
+    handle:write("{}")
+    handle:close()
+  end
+
   local inst, err = config.table:load(ipath)
+
   if not inst and err then
     exit("cannot open installed.list: " .. err)
   end
@@ -83,7 +104,8 @@ function search(name)
   local repos = cfg.Repositories
   for k, v in pairs(repos) do
     log(pfx.info, "searching list ", k)
-    local data, err = config.table:load(path.concat(cfg.General.dataDirectory, k .. ".list"))
+    local data, err = config.table:load(path.concat(opts.root,
+      cfg.General.dataDirectory, k .. ".list"))
     if not data then
       log(pfx.warn, "list ", k, " is nonexistent; run 'upm update' to refresh")
     else
@@ -101,7 +123,7 @@ function update()
   for k, v in pairs(repos) do
     log(pfx.info, "refreshing list: ", k)
     local url = v .. "/packages.list"
-    download(url, path.concat(cfg.General.dataDirectory, k .. ".list"))
+    download(url, path.concat(opts.root, cfg.General.dataDirectory, k .. ".list"))
   end
 end
 
@@ -132,9 +154,8 @@ function extract(package)
   if not base then
     exit(package .. ": " .. err)
   end
-  local stream = mtar.unarchive(base)
   local files = {}
-  for file, data in function() return stream:readfile() end do
+  for file, diter, len in mtar.unarchive(base) do
     files[#files+1] = file
     if opts.v then
       log("  ", pfx.info, "extract file: ", file)
@@ -158,20 +179,22 @@ function extract(package)
     if not handle then
       exit(absolute .. ": " .. err)
     end
-    handle:write(data)
+    for chunk in diter, 2048 do
+      handle:write(chunk)
+    end
     handle:close()
   end
-  stream:close()
+  base:close()
   log(pfx.info, "ok")
   return files
 end
 
 function install_package(name)
-  local data, err = search(name)--config.table:load(path.concat(cfg.General.cacheDirectory, name .. ".list"))
+  local data, err = search(name)
   if not data then
     exit("failed reading metadata for package " .. name .. ": " .. err)
   end
-  local files = extract(path.concat(cfg.General.cacheDirectory, name .. ".mtar"))
+  local files = extract(path.concat(opts.root, cfg.General.cacheDirectory, name .. ".mtar"))
   installed[name] = {info = data, files = files}
 end
 
@@ -193,8 +216,7 @@ if args[1] == "install" then
     if installed[args[i]] and installed[args[i]].version >= data.version and not opts.q then
       log(pfx.err, "package is already installed")
     else
-      --download(cfg.Repositories[repo] .. data.metadata, path.concat(cfg.General.cacheDirectory, args[i] .. ".list"))
-      download(cfg.Repositories[repo] .. data.mtar, path.concat(cfg.General.cacheDirectory, args[i] .. ".mtar"))
+      download(cfg.Repositories[repo] .. data.mtar, path.concat(opts.root, cfg.General.cacheDirectory, args[i] .. ".mtar"))
       install_package(args[i])
     end
   end
