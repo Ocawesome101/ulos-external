@@ -1,0 +1,46 @@
+*{NAME}
+  upm - the ULOS Package Manager
+
+*{SYNOPSIS}
+  ${upm} [*{options}] *{COMMAND} [*{...}]
+
+*{DESCRIPTION}
+  ${upm} is the ULOS package manager.  It requires a means of communication with a server from which to download packages, but can download them from anywhere as long as the protocol is supported by the kernel *{network}(*{2}) API.
+
+  Available commands:
+    *{install PACKAGE) [*{...}]
+      Install the specified *{PACKAGE}(s), if found in the local package lists.
+
+    *{remove PACKAGE} [*{...}]
+      Remove the specified *{PACKAGE}(s), if installed.
+
+    *{update}
+      Refresh the local package lists from each repository specified in the configuration file (see *{CONFIGURATION} below).
+
+    *{search PACKAGE} [*{...}]
+      For each *{PACKAGE}, search the local package lists and print information about that package.
+
+    *{help}
+      See *{--help} below.
+
+  Available options:
+    *{-q}
+      Suppresses all log output except errors.
+
+    *{-v}
+      Be verbose;  overrides *{-q}.
+
+    *{--root}=*{PATH}
+      Specify *{PATH} to be treaded as the root directory, rather than #{/}.  This is mainly useful for bootstrapping another ULOS system, or for installing packages on another disk.
+
+    *{--help}
+      Print the built-in help text.
+
+*{CONFIGURATION}
+  ${upm}'s configuration is stored in #{/etc/upm.cfg}.  It should be fairly self-explanatory.
+
+*{COPYRIGHT}
+  ULOS Package Manager copyright (c) 2021 Ocawesome101 under the DSLv2.
+
+*{REPORTING BUGS}
+  Bugs should be reported at @{https://github.com/ocawesome101/oc-ulos/issues}.

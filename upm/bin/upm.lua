@@ -158,7 +158,7 @@ function extract(package)
   for file, diter, len in mtar.unarchive(base) do
     files[#files+1] = file
     if opts.v then
-      log("  ", pfx.info, "extract file: ", file)
+      log("  ", pfx.info, "extract file: ", file, " (length ", len, ")")
     end
     local absolute = path.concat(opts.root, file)
     local segments = path.split(absolute)
@@ -179,7 +179,9 @@ function extract(package)
     if not handle then
       exit(absolute .. ": " .. err)
     end
-    for chunk in diter, 2048 do
+    while true do
+      local chunk = diter(math.min(len, 2048))
+      if not chunk then break end
       handle:write(chunk)
     end
     handle:close()
@@ -213,16 +215,34 @@ if args[1] == "install" then
   end
   for i=2, #args, 1 do
     local data, repo = search(args[i])
-    if installed[args[i]] and installed[args[i]].version >= data.version and not opts.q then
+    if installed[args[i]] and installed[args[i]].info.version >= data.version
+        and not opts.f then
       log(pfx.err, "package is already installed")
     else
       download(cfg.Repositories[repo] .. data.mtar, path.concat(opts.root, cfg.General.cacheDirectory, args[i] .. ".mtar"))
       install_package(args[i])
     end
   end
-  config.table:save("installed.list", installed)
+  config.table:save(ipath, installed)
 elseif args[1] == "remove" then
-  exit("operation 'remove' not implemented yet")
+  if not args[2] then
+    exit("command verb 'remove' requires at least one argument")
+  end
+  local rm = assert(loadfile("/bin/rm.lua"))
+  for i=2, #args, 1 do
+    local ent = installed[args[i]]
+    if not ent then
+      log(pfx.err, "package ", args[i], " is not installed")
+    else
+      log(pfx.info, "removing files")
+      for i, file in ipairs(ent.files) do
+        rm("-rf", path.concat(opts.root, file))
+      end
+      log(pfx.info, "unregistering package")
+      installed[args[i]] = nil
+    end
+  end
+  config.table:save(ipath, installed)
 elseif args[1] == "update" then
   update()
 elseif args[1] == "search" then

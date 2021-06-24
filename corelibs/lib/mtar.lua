@@ -16,14 +16,9 @@ function stream:writefile(name, data)
     return nil, "cannot write to read-only stream"
   end
 
-  if #data > 65534 then
-    return self.base:write(string.pack(">I2I1", 0xFFFF, 1)
-      .. string.pack(formats[1].name, #name) .. name
-      .. string.pack(formats[1].len, #data) .. data)
-  else
-    return self.base:write(string.pack(formats[0].name, #name) .. name
-      .. string.pack(formats[0].len, #data) .. data)
-  end
+  return self.base:write(string.pack(">I2I1", 0xFFFF, 1)
+    .. string.pack(formats[1].name, #name) .. name
+    .. string.pack(formats[1].len, #data) .. data)
 end
 
 --[[
@@ -81,14 +76,13 @@ end
 --]]
 
 -- this is Izaya's MTAR parsing code because apparently mine sucks
--- however, this is re-indented in a sane way, with argument checking
+-- however, this is re-indented in a sane way, with argument checking added
 function mtar.unarchive(stream)
   checkArg(1, stream, "FILE*")
   local remain = 0
   local function read(n)
     local rb = stream:read(math.min(n,remain))
-    if not rb then
-      stream:close()
+    if remain == 0 or not rb then
       return nil
     end
     remain = remain - rb:len()
@@ -100,8 +94,8 @@ function mtar.unarchive(stream)
     end
     local version = 0
     local nd = stream:read(2) or "\0\0"
-    if #nd < 2 then nd = ("\0"):rep(2 - #nd) .. nd end
-    local nlen = string.unpack(">I2", stream:read(2) or "\0\0")
+    if #nd < 2 then return end
+    local nlen = string.unpack(">I2", nd)
     if nlen == 0 then
       return
     elseif nlen == 65535 then -- versioned header

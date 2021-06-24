@@ -44,18 +44,64 @@ until fs[tonumber(choice) or 0]
 os.execute("mount -u /mnt")
 os.execute("mount " .. fs[tonumber(choice)] .. " /mnt")
 
--- TODO: do this some way other than hard-coding it
-local dirs = {
-  "bin",
-  "etc",
-  "lib",
-  "sbin",
-  "usr",
-  "init.lua", -- copy this last for safety reasons
-}
-
-for i, dir in ipairs(dirs) do
-  os.execute("cp -rv /"..dir.." /mnt/"..dir)
+local online, full = false, false
+if component.list("internet")() then
+  io.write("Perform an online installation? [Y/n]: ")
+  local choice
+  repeat
+    io.write(choice and "Please enter 'y' or 'n': " or "")
+    choice = io.read():gsub("\n", "")
+  until choice == "y" or choice == "n" or choice == ""
+  online = (choice == "y" or #choice == 0)
+  if online then
+    io.write("Install the full system (manual pages, TLE)?  [Y/n]: ")
+    local choice
+    repeat
+      io.write(choice and "Please enter 'y' or 'n': " or "")
+      choice = io.read():gsub("\n", "")
+    until choice == "y" or choice == "n" or choice == ""
+    full = (choice == "y" or #choice == 0)
+    if full then
+      print("Installing the full system from the internet")
+    else
+      print("Installing the base system from the internet")
+    end
+  else
+    print("Copying the system from the installer medium")
+  end
+else
+  print("No internet card installed, defaulting to offline installation")
 end
 
-os.execute("rm /mnt/bin/install.lua")
+if online then
+  os.execute("upm update --root=/mnt")
+  local pklist = {
+    "cynosure",
+    "refinement",
+    "coreutils",
+    "corelibs",
+    "coresvc",
+    "upm",
+  }
+  if full then
+    pklist[#pklist+1] = "tle"
+    pklist[#pklist+1] = "manpages"
+  end
+  os.execute("upm install --root=/mnt " .. table.concat(pklist, " "))
+else
+-- TODO: do this some way other than hard-coding it
+  local dirs = {
+    "bin",
+    "etc",
+    "lib",
+    "sbin",
+    "usr",
+    "init.lua", -- copy this last for safety reasons
+  }
+
+  for i, dir in ipairs(dirs) do
+    os.execute("cp -rv /"..dir.." /mnt/"..dir)
+  end
+
+  os.execute("rm /mnt/bin/install.lua")
+end
