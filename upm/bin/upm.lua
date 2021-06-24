@@ -66,9 +66,10 @@ local function exit(reason)
   os.exit(1)
 end
 
-local installed
+local installed, ipath
 do
-  local inst, err = config.table:load(path.concat(cfg.General.dataDirectory, "installed.list"))
+  ipath = path.concat(cfg.General.dataDirectory, "installed.list")
+  local inst, err = config.table:load(ipath)
   if not inst and err then
     exit("cannot open installed.list: " .. err)
   end
@@ -87,7 +88,7 @@ function search(name)
       log(pfx.warn, "list ", k, " is nonexistent; run 'upm update' to refresh")
     else
       if data.packages[name] then
-        return data.packages[name]
+        return data.packages[name], k
       end
     end
   end
@@ -160,11 +161,12 @@ function extract(package)
 end
 
 function install_package(name)
-  local data, err = config.table:load(path.concat(cfg.General.cacheDirectory, name .. ".list"))
+  local data, err = search(name)--config.table:load(path.concat(cfg.General.cacheDirectory, name .. ".list"))
   if not data then
     exit("failed reading metadata for package " .. name .. ": " .. err)
   end
-  extract(path.concat(cfg.General.cacheDirectory, name .. ".mtar"))
+  local files = extract(path.concat(cfg.General.cacheDirectory, name .. ".mtar"))
+  installed[name] = {info = data, files = files}
 end
 
 if opts.help or args[1] == "help" then
@@ -177,9 +179,34 @@ if #args == 0 then
 end
 
 if args[1] == "install" then
-  exit("operation 'install' not implemented yet")
+  if not args[2] then
+    exit("command verb 'install' requires at least one argument")
+  end
+  for i=2, #args, 1 do
+    local data, repo = search(args[i])
+    if installed[args[i]] and installed[args[i]].version >= data.version and not opts.q then
+      log(pfx.err, "package is already installed")
+    else
+      --download(cfg.Repositories[repo] .. data.metadata, path.concat(cfg.General.cacheDirectory, args[i] .. ".list"))
+      download(cfg.Repositories[repo] .. data.mtar, path.concat(cfg.General.cacheDirectory, args[i] .. ".mtar"))
+      install_package(args[i])
+    end
+  end
+  config.table:save("installed.list", installed)
+elseif args[1] == "remove" then
+  exit("operation 'remove' not implemented yet")
 elseif args[1] == "update" then
   update()
+elseif args[1] == "search" then
+  if not args[2] then
+    exit("command verb 'search' requires at least one argument")
+  end
+  for i=2, #args, 1 do
+    local data, repo = search(args[i])
+    io.write("\27[94m", repo, "\27[39m/", args[i], "\n")
+    io.write("  \27[92mAuthor: \27[39m", data.author or "(unknown)", "\n")
+    io.write("  \27[92mDesc: \27[39m", data.description or "(no description)", "\n")
+  end
 else
   exit("operation '" .. args[1] .. "' is unrecognized")
 end
