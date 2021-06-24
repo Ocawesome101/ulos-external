@@ -92,7 +92,7 @@ function search(name)
       end
     end
   end
-  exit("package ", name, " not found")
+  exit("package " .. name .. " not found")
 end
 
 function update()
@@ -142,12 +142,17 @@ function extract(package)
     local absolute = path.concat(opts.root, file)
     local segments = path.split(absolute)
     for i=1, #segments - 1, 1 do
-      local create = table.concat(segments, 1, i, "/")
-      local ok, err = fs.touch(create, filetypes.directory)
-      if not ok and err then
-        log(pfx.err, "failed to create directory " .. create .. ": " .. err)
-        exit("leaving any already-created files - manual cleanup may be required!")
+      local create = table.concat(segments, "/", 1, i)
+      if not fs.stat(create) then
+        local ok, err = fs.touch(create, filetypes.directory)
+        if not ok and err then
+          log(pfx.err, "failed to create directory " .. create .. ": " .. err)
+          exit("leaving any already-created files - manual cleanup may be required!")
+        end
       end
+    end
+    if opts.v then
+      log("   ", pfx.info, "writing to: ", absolute)
     end
     local handle, err = io.open(absolute, "w")
     if not handle then
@@ -158,6 +163,7 @@ function extract(package)
   end
   stream:close()
   log(pfx.info, "ok")
+  return files
 end
 
 function install_package(name)

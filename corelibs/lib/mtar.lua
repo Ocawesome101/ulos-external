@@ -29,14 +29,16 @@ function stream:readfile()
     return nil, "cannot read from write-only stream"
   end
 
-  local namelen = self.base:read(2)
+  local namelen = (self.base:read(2) or "\0\0")
+  if #namelen == 0 then return end
+  namelen = (">I2"):unpack(namelen)
   local version = 0
   local to_read = 0
   local file_path = ""
-  if namelen == "\255\255" then
+  if namelen == 0xFFFF then
     version = self.base:read(1):byte()
-    namelen = self.base:read(2)
-  elseif namelen == "" or namelen == "\0" then
+    namelen = formats[version].name:unpack(self.base:read(2))
+  elseif namelen == 0 then
     return nil
   end
 
@@ -44,7 +46,6 @@ function stream:readfile()
     return nil, "unsupported format version " .. version
   end
 
-  namelen = formats[version].name:unpack(name)
   file_path = self.base:read(namelen)
   if #file_path ~= namelen then
     return nil, "unexpected end-of-file reading archive"
