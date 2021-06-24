@@ -22,31 +22,31 @@ config.bracket:save("/etc/upm.cfg", cfg)
 if type(opts.root) ~= "string" then opts.root = "/" end
 opts.root = path.canonical(opts.root)
 
-local usage = [[
-UPM - the ULOS Package Manager
-
-usage: upm [options] COMMAND [...]
-
-Available COMMANDs:
-  install PACKAGE ...
-    Install the specified PACKAGE(s).
-
-  remove PACKAGE ...
-    Remove the specified PACKAGE(s).
-
-  update
-    Update (refetch) the repository package lists.
-
-  search PACKAGE
-    Search local package lists for PACKAGE, and
-    display information about it.
-
-Available options:
-  -q            Be quiet;  no log output.
-  -v            Be verbose;  overrides -q.
-  --root=PATH   Treat PATH as the root filesystem
-                instead of /.
-]]
+local usage = "\
+UPM - the ULOS Package Manager\
+\
+usage: \27[36mupm \27[39m[\27[93moptions\27[39m] \27[96mCOMMAND \27[39m[\27[96m...\27[39m]\
+\
+Available \27[96mCOMMAND\27[39ms:\
+  \27[96minstall \27[91mPACKAGE ...\27[39m\
+    Install the specified \27[91mPACKAGE\27[39m(s).\
+\
+  \27[96mremove \27[91mPACKAGE ...\27[39m\
+    Remove the specified \27[91mPACKAGE\27[39m(s).\
+\
+  \27[96mupdate\27[39m\
+    Update (refetch) the repository package lists.\
+\
+  \27[96msearch \27[91mPACKAGE\27[39m\
+    Search local package lists for \27[91mPACKAGE\27[39m, and\
+    display information about it.\
+\
+Available \27[93moption\27[39ms:\
+  \27[93m-q\27[39m            Be quiet;  no log output.\
+  \27[93m-v\27[39m            Be verbose;  overrides \27[93m-q\27[39m.\
+  \27[93m--root\27[39m=\27[33mPATH\27[39m   Treat \27[33mPATH\27[39m as the root filesystem\
+                instead of /.\
+"
 
 local pfx = {
   info = "\27[92m::\27[39m ",
@@ -68,19 +68,21 @@ end
 
 local installed
 do
-  local inst, err = config.table:load(path.concat(cfg.dataDirectory, "installed.list"))
+  local inst, err = config.table:load(path.concat(cfg.General.dataDirectory, "installed.list"))
   if not inst and err then
-    exit(err)
+    exit("cannot open installed.list: " .. err)
   end
   installed = inst
 end
 
-local function search(name)
+local search, update, download, extract, install_package, install
+
+function search(name)
   log(pfx.info, "querying repositories for package")
   local repos = cfg.Repositories
   for k, v in pairs(repos) do
     log(pfx.info, "searching list ", k)
-    local data, err = config.table:load(path.concat(cfg.dataDirectory, k .. ".list"))
+    local data, err = config.table:load(path.concat(cfg.General.dataDirectory, k .. ".list"))
     if not data then
       log(pfx.warn, "list ", k, " is nonexistent; run 'upm update' to refresh")
     else
@@ -92,8 +94,18 @@ local function search(name)
   exit("package ", name, " not found")
 end
 
-local function download(url, dest)
-  log("downloading ", url, " as ", dest)
+function update()
+  log(pfx.info, "refreshing package lists")
+  local repos = cfg.Repositories
+  for k, v in pairs(repos) do
+    log(pfx.info, "refreshing list: ", k)
+    local url = v .. "/packages.list"
+    download(url, path.concat(cfg.General.dataDirectory, k .. ".list"))
+  end
+end
+
+function download(url, dest)
+  log(pfx.warn, "downloading ", url, " as ", dest)
   local out, err = io.open(dest, "w")
   if not out then
     exit(dest .. ": " .. err)
@@ -113,7 +125,7 @@ local function download(url, dest)
   out:close()
 end
 
-local function extract(package)
+function extract(package)
   log(pfx.info, "extracting ", package)
   local base, err = io.open(package, "r")
   if not base then
@@ -147,7 +159,7 @@ local function extract(package)
   log(pfx.info, "ok")
 end
 
-local function install_package(name)
+function install_package(name)
   local data, err = config.table:load(path.concat(cfg.General.cacheDirectory, name .. ".list"))
   if not data then
     exit("failed reading metadata for package " .. name .. ": " .. err)
@@ -155,7 +167,19 @@ local function install_package(name)
   extract(path.concat(cfg.General.cacheDirectory, name .. ".mtar"))
 end
 
-if opts.help then
+if opts.help or args[1] == "help" then
   io.stderr:write(usage)
   os.exit(1)
+end
+
+if #args == 0 then
+  exit("an operation is required; see 'upm --help'")
+end
+
+if args[1] == "install" then
+  exit("operation 'install' not implemented yet")
+elseif args[1] == "update" then
+  update()
+else
+  exit("operation '" .. args[1] .. "' is unrecognized")
 end

@@ -7,13 +7,13 @@ local lib = {}
 local function read_file(f)
   local handle, err = io.open(f, "r")
   if not handle then return nil, err end
-  return (handle:read("a"), handle:close())
+  return handle:read("a"), handle:close()
 end
 
 local function write_file(f, d)
   local handle, err = io.open(f, "w")
   if not handle then return nil, err end
-  return (true, handle:write(d), handle:close())
+  return true, handle:write(d), handle:close()
 end
 
 local function new(self)
@@ -24,14 +24,17 @@ end
 lib.table = {new = new}
 
 function lib.table:load(file)
+  checkArg(1, file, "string")
   local data, err = read_file(file)
   if not data then return nil, err end
-  local ok, err = load("return " .. file, "=(config@"..file..")", "t", _G)
+  local ok, err = load("return " .. data, "=(config@"..file..")", "t", _G)
   if not ok then return nil, err end
   return ok()
 end
 
 function lib.table:save(file, data)
+  checkArg(1, file, "string")
+  checkArg(2, data, "table")
   return write_file(file, serializer(data))
 end
 
@@ -57,16 +60,17 @@ local function pval(v)
 end
 
 function lib.bracket:load(file)
+  checkArg(1, file, "string")
   local handle, err = io.open(file, "r")
   if not handle then return nil, err end
   local cfg = {}
   local header
   for line in handle:lines("l") do
-    if line:match(bktheader) then
-      header = line:match(bktheader)
+    if line:match(patterns.bktheader) then
+      header = line:match(patterns.bktheader)
       cfg[header] = {}
-    elseif line:match(bktkeyval) and header then
-      local key, val = line:match(bktkeyval)
+    elseif line:match(patterns.bktkeyval) and header then
+      local key, val = line:match(patterns.bktkeyval)
       if val:sub(1,1)=="[" and val:sub(-1)=="]" then
         local _v = val:sub(2,-2)
         val = {}
@@ -84,18 +88,20 @@ function lib.bracket:load(file)
 end
 
 function lib.bracket:save(file, cfg)
+  checkArg(1, file, "string")
+  checkArg(2, cfg, "table")
   local data = ""
   for k, v in pairs(cfg) do
-    data = data .. string.format("\n[%s]", k)
+    data = data .. string.format("%s[%s]", #data > 0 and "\n\n" or "", k)
     for _k, _v in pairs(v) do
-      data = data .. "\n" .. k .. "="
+      data = data .. "\n" .. _k .. "="
       if type(_v) == "table" then
         data = data .. "["
         for kk, vv in ipairs(_v) do
           data = data .. serializer(vv) .. (kk < #_v and "," or "")
         end
         data = data .. "]"
-      else
+      elseif _v then
         data = data .. serializer(_v)
       end
     end
