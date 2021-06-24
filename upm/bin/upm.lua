@@ -45,12 +45,16 @@ Available \27[96mCOMMAND\27[39ms:\
   \27[96mupdate\27[39m\
     Update (refetch) the repository package lists.\
 \
+  \27[96mupgrade\27[39m\
+    Upgrade installed packages.\
+\
   \27[96msearch \27[91mPACKAGE\27[39m\
     Search local package lists for \27[91mPACKAGE\27[39m, and\
     display information about it.\
 \
 Available \27[93moption\27[39ms:\
   \27[93m-q\27[39m            Be quiet;  no log output.\
+  \27[93m-f\27[39m            Skip version checks and package-already-installed checks.\
   \27[93m-v\27[39m            Be verbose;  overrides \27[93m-q\27[39m.\
   \27[93m--root\27[39m=\27[33mPATH\27[39m   Treat \27[33mPATH\27[39m as the root filesystem\
                 instead of /.\
@@ -224,6 +228,16 @@ if args[1] == "install" then
     end
   end
   config.table:save(ipath, installed)
+elseif args[1] == "upgrade" then
+  for k, v in pairs(installed) do
+    local data, repo = search(k)
+    if not (installed[k] and installed[k].info.version >= data.version
+        and not opts.f) then
+      log(pfx.info, "updating ", k)
+      download(cfg.Repositories[repo] .. data.mtar, path.concat(opts.root, cfg.General.cacheDirectory, k .. ".mtar"))
+      install_package(k)
+    end
+  end
 elseif args[1] == "remove" then
   if not args[2] then
     exit("command verb 'remove' requires at least one argument")
