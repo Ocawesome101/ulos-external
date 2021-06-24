@@ -14,6 +14,9 @@
     *{remove PACKAGE} [*{...}]
       Remove the specified *{PACKAGE}(s), if installed.
 
+    *{upgrade}
+      Upgrade all local packages whose version is less than that offered by the remote repositories.
+
     *{update}
       Refresh the local package lists from each repository specified in the configuration file (see *{CONFIGURATION} below).
 
@@ -29,6 +32,9 @@
 
     *{-v}
       Be verbose;  overrides *{-q}.
+
+    *{-f}
+      Skip checks for package installation status and package version differences.  Useful for reinstalling packages.
 
     *{--root}=*{PATH}
       Specify *{PATH} to be treaded as the root directory, rather than #{/}.  This is mainly useful for bootstrapping another ULOS system, or for installing packages on another disk.
