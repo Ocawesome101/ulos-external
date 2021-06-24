@@ -104,10 +104,10 @@ end
 local search, update, download, extract, install_package, install
 
 function search(name)
-  log(pfx.info, "querying repositories for package")
+  if opts.v then log(pfx.info, "querying repositories for package ", name) end
   local repos = cfg.Repositories
   for k, v in pairs(repos) do
-    log(pfx.info, "searching list ", k)
+    if opts.v then log(pfx.info, "searching list ", k) end
     local data, err = config.table:load(path.concat(opts.root,
       cfg.General.dataDirectory, k .. ".list"))
     if not data then
@@ -238,6 +238,7 @@ elseif args[1] == "upgrade" then
       install_package(k)
     end
   end
+  config.table:save(ipath, installed)
 elseif args[1] == "remove" then
   if not args[2] then
     exit("command verb 'remove' requires at least one argument")
