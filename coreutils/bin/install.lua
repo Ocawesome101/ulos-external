@@ -80,7 +80,6 @@ if online then
     "refinement",
     "coreutils",
     "corelibs",
-    "coresvc",
     "upm",
   }
   if full then
