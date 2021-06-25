@@ -89,6 +89,7 @@ local function readline(opts)
       end
     elseif flags.ctrl then
       if key == "m" then
+        if cpos > 0 then io.write(string.format("\27[%dC", cpos)) end
         io.write("\n")
         break
       elseif key == "a" and cpos < #buffer then
