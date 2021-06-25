@@ -8,7 +8,7 @@
   ${upm} is the ULOS package manager.  It requires a means of communication with a server from which to download packages, but can download them from anywhere as long as the protocol is supported by the kernel *{network}(*{2}) API.
 
   Available commands:
-    *{install PACKAGE) [*{...}]
+    *{install PACKAGE} [*{...}]
       Install the specified *{PACKAGE}(s), if found in the local package lists.
 
     *{remove PACKAGE} [*{...}]
@@ -22,6 +22,9 @@
 
     *{search PACKAGE} [*{...}]
       For each *{PACKAGE}, search the local package lists and print information about that package.
+
+    *{list}
+      List all installed packages.
 
     *{help}
       See *{--help} below.

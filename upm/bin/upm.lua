@@ -52,6 +52,9 @@ Available \27[96mCOMMAND\27[39ms:\
     Search local package lists for \27[91mPACKAGE\27[39m, and\
     display information about it.\
 \
+  \27[96mlist\27[39m\
+    List all installed packages.\
+\
 Available \27[93moption\27[39ms:\
   \27[93m-q\27[39m            Be quiet;  no log output.\
   \27[93m-f\27[39m            Skip version checks and package-already-installed checks.\
@@ -266,9 +269,14 @@ elseif args[1] == "search" then
   end
   for i=2, #args, 1 do
     local data, repo = search(args[i])
-    io.write("\27[94m", repo, "\27[39m/", args[i], "\n")
+    io.write("\27[94m", repo, "\27[39m/", args[i], " ",
+      installed[args[i]] and "\27[96m(installed)\27[39m" or "", "\n")
     io.write("  \27[92mAuthor: \27[39m", data.author or "(unknown)", "\n")
     io.write("  \27[92mDesc: \27[39m", data.description or "(no description)", "\n")
+  end
+elseif args[1] == "list" then
+  for k in pairs(installed) do
+    print(k)
   end
 else
   exit("operation '" .. args[1] .. "' is unrecognized")
