@@ -3,6 +3,8 @@
 local args = table.pack(...)
 local notopts, opts = require("argutil").parse(...)
 
+local readline = require("readline")
+
 opts.i = opts.i or #args == 0
 
 if opts.help then
@@ -60,9 +62,12 @@ if opts.e then
 end
 
 if opts.i then
+  local hist = {}
+  local rlopts = {history = hist}
   while true do
     io.write("> ")
-    local eval = io.read("l")
+    local eval = readline(rlopts)
+    hist[#hist+1] = eval
     local ok, err = load(eval, "=stdin", "bt", prog_env)
     if not ok then
       ok, err = load("return " ..eval, "=stdin", "bt", prog_env)

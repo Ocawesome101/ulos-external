@@ -1,7 +1,8 @@
--- login.  finally!!!
+-- coreutils: login
 
 local users = require("users")
 local process = require("process")
+local readline = require("readline")
 
 if (process.info().owner or 0) ~= 0 then
   io.stderr:write("login may only be run as root!\n")
@@ -12,7 +13,7 @@ io.write("\27?0c\27[39;49m\nWelcome to ULOS.\n\n")
 
 local function main()
   io.write("\27?0c", os.getenv("HOSTNAME") or "localhost", " login: ")
-  local un = io.read("l")
+  local un = readline()
   io.write("password: \27[8m")
   local pw = io.read("l")
   io.write("\n\27[m\27?0c")
@@ -33,7 +34,7 @@ local function main()
       if not shellf then
         io.write("failed loading shell: ", sherr, "\n\n")
       else
-        print("")
+        io.write("\n")
 
         local motd = io.open("/etc/motd.txt", "r")
         if motd then

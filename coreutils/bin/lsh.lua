@@ -17,6 +17,7 @@
 -- Comments are preceded by a # and continue until the next newline character
 -- or until EOF.
 
+local readline = require("readline")
 local process = require("process")
 local fs = require("filesystem")
 local paths = require("path")
@@ -524,9 +525,18 @@ io.popen = function(command, mode)
   return handle
 end
 
+local history = {}
+local rlopts = {
+  history = history
+}
 while true do
   io.write("\27[0m\27?0c", processPrompt(os.getenv("PS1")))
-  local ok, err = processCommand(io.read("l"))
+  local command = readline(rlopts)
+  history[#history+1] = command
+  if #history > 32 then
+    table.remove(history, 1)
+  end
+  local ok, err = processCommand(command)
   if not ok and err then
     io.stderr:write(err, "\n")
   end
