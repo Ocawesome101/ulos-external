@@ -222,6 +222,10 @@ local function dl_pkg(name, repo, data)
 end
 
 local function install(packages)
+  if #packages == 0 then
+    exit("no packages to install")
+  end
+  
   local to_install = {}
   local dopkg
   dopkg = function(pkg)
