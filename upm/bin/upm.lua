@@ -221,20 +221,7 @@ local function dl_pkg(name, repo, data)
     path.concat(opts.root, cfg.General.cacheDirectory, name .. ".mtar"))
 end
 
-if opts.help or args[1] == "help" then
-  io.stderr:write(usage)
-  os.exit(1)
-end
-
-if #args == 0 then
-  exit("an operation is required; see 'upm --help'")
-end
-
-if args[1] == "install" then
-  if not args[2] then
-    exit("command verb 'install' requires at least one argument")
-  end
-  
+local function install(packages)
   local to_install = {}
   local dopkg
   dopkg = function(pkg)
@@ -282,17 +269,35 @@ if args[1] == "install" then
   end
 
   config.table:save(ipath, installed)
+end
+
+if opts.help or args[1] == "help" then
+  io.stderr:write(usage)
+  os.exit(1)
+end
+
+if #args == 0 then
+  exit("an operation is required; see 'upm --help'")
+end
+
+if args[1] == "install" then
+  if not args[2] then
+    exit("command verb 'install' requires at least one argument")
+  end
+  
+  table.remove(args, 1)
+  install(args)
 elseif args[1] == "upgrade" then
+  local to_upgrade = {}
   for k, v in pairs(installed) do
     local data, repo = search(k)
     if not (installed[k] and installed[k].info.version >= data.version
         and not opts.f) then
       log(pfx.info, "updating ", k)
-      download(cfg.Repositories[repo] .. data.mtar, path.concat(opts.root, cfg.General.cacheDirectory, k .. ".mtar"))
-      install_package(k)
+      to_upgrade[#to_upgrade+1] = k
     end
   end
-  config.table:save(ipath, installed)
+  install(to_upgrade)
 elseif args[1] == "remove" then
   if not args[2] then
     exit("command verb 'remove' requires at least one argument")
