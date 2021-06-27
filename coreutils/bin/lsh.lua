@@ -175,7 +175,8 @@ local function call(name, func, args, fio)
 
   local exitStatus, exitReason = process.await(pid)
 
-  if exitStatus ~= 0 and exitReason ~= "__internal_process_exit" then
+  if exitStatus ~= 0 and exitReason ~= "__internal_process_exit"
+      and exitReason ~= "exited" and exitReason and #exitReason > 0 then
     io.stderr:write(name, ": ", exitReason, "\n")
   end
 

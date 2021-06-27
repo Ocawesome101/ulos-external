@@ -23,8 +23,20 @@
     *{search PACKAGE} [*{...}]
       For each *{PACKAGE}, search the local package lists and print information about that package.
 
-    *{list}
-      List all installed packages.
+    *{list} [*{TARGET}]
+      List packages.
+
+      If *{TARGET} is specified, it must be one of the following:
+        *{installed} (default)
+          List all installed packages.
+
+        *{all}
+          List all packages in the remote repositories.
+
+        <*{repository}>
+          List all packages in the specified repository.
+
+      Other values of *{TARGET} will result in an error.
 
     *{help}
       See *{--help} below.

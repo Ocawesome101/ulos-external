@@ -52,15 +52,24 @@ Available \27[96mCOMMAND\27[39ms:\
     Search local package lists for \27[91mPACKAGE\27[39m, and\
     display information about it.\
 \
-  \27[96mlist\27[39m\
-    List all installed packages.\
+  \27[96mlist\27[39m [\27[91mTARGET\27[39m]\
+    List packages.  If \27[91mTARGET\27[39m is 'all',\
+    then list packages from all repos;  if \27[91mTARGET\27[37m\
+    is 'installed', then print all installed\
+    packages;  otherewise, print all the packages\
+    in the repo specified by \27[91mTARGET\27[37m.\
+    \27[91mTARGET\27[37m defaults to 'installed'.\
 \
 Available \27[93moption\27[39ms:\
   \27[93m-q\27[39m            Be quiet;  no log output.\
-  \27[93m-f\27[39m            Skip version checks and package-already-installed checks.\
+  \27[93m-f\27[39m            Skip checks for package version and\
+                              installation status.\
   \27[93m-v\27[39m            Be verbose;  overrides \27[93m-q\27[39m.\
   \27[93m--root\27[39m=\27[33mPATH\27[39m   Treat \27[33mPATH\27[39m as the root filesystem\
                 instead of /.\
+
+The ULOS Package Manager is copyright (c) 2021
+Ocawesome101 under the DSLv2.
 "
 
 local pfx = {
@@ -275,8 +284,35 @@ elseif args[1] == "search" then
     io.write("  \27[92mDesc: \27[39m", data.description or "(no description)", "\n")
   end
 elseif args[1] == "list" then
-  for k in pairs(installed) do
-    print(k)
+  if args[2] == "installed" then
+    for k in pairs(installed) do
+      print(k)
+    end
+  elseif args[2] == "all" or not args[2] then
+    for k, v in pairs(cfg.Repositories) do
+      if opts.v then log(pfx.info, "searching list ", k) end
+      local data, err = config.table:load(path.concat(opts.root,
+        cfg.General.dataDirectory, k .. ".list"))
+      if not data then
+        log(pfx.warn, "list ", k, " is nonexistent; run 'upm update' to refresh")
+      else
+        for p in pairs(data.packages) do
+          print(p)
+        end
+      end
+    end
+  elseif cfg.Repositories[args[2]] then
+    local data, err = config.table:load(path.concat(opts.root,
+      cfg.General.dataDirectory, args[2] .. ".list"))
+    if not data then
+      log(pfx.warn, "list ", args[2], " is nonexistent; run 'upm update' to refresh")
+    else
+      for p in pairs(data.packages) do
+        print(p)
+      end
+    end
+  else
+    exit("cannot determine target '" .. args[2] .. "'")
   end
 else
   exit("operation '" .. args[1] .. "' is unrecognized")
