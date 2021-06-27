@@ -216,6 +216,11 @@ function install_package(name)
   installed[name] = {info = data, files = files}
 end
 
+local function dl_pkg(name, repo, data)
+  download(cfg.Repositories[repo] .. data.mtar,
+    path.concat(opts.root, cfg.General.cacheDirectory, name .. ".mtar"))
+end
+
 if opts.help or args[1] == "help" then
   io.stderr:write(usage)
   os.exit(1)
@@ -229,16 +234,53 @@ if args[1] == "install" then
   if not args[2] then
     exit("command verb 'install' requires at least one argument")
   end
-  for i=2, #args, 1 do
-    local data, repo = search(args[i])
-    if installed[args[i]] and installed[args[i]].info.version >= data.version
+  
+  local to_install = {}
+  local dopkg
+  dopkg = function(pkg)
+    local data, repo = search(pkg)
+    if installed[pkg] and installed[pkg].info.version >= data.version
         and not opts.f then
-      log(pfx.err, "package is already installed")
+      log(pfx.err, pkg .. ": package is already installed")
+    elseif to_install[pkg] then
+      log(pfx.warn, pkg .. ": circular dependency detected")
     else
-      download(cfg.Repositories[repo] .. data.mtar, path.concat(opts.root, cfg.General.cacheDirectory, args[i] .. ".mtar"))
-      install_package(args[i])
+      to_install[pkg] = {data = data, repo = repo}
+      if data.dependencies then
+        for i, dep in pairs(data.dependencies) do
+          dopkg(dep)
+        end
+      end
     end
   end
+
+  log(pfx.info, "resolving dependencies")
+  for i=2, #args, 1 do
+    dopkg(args[i])
+  end
+
+  log(pfx.info, "packages to install: ")
+  for k in pairs(to_install) do
+    io.write(k, "  ")
+  end
+  
+  io.write("\n\nContinue? [Y/n] ")
+  repeat
+    local c = io.read("l")
+    if c == "n" then os.exit() end
+    if c ~= "y" and c ~= "" then io.write("Please enter 'y' or 'n': ") end
+  until c == "y" or c == ""
+
+  log(pfx.info, "downloading packages")
+  for k, v in pairs(to_install) do
+    dl_pkg(k, v.repo, v.data)
+  end
+
+  log(pfx.info, "installing packages")
+  for k in pairs(to_install) do
+    install_package(k)
+  end
+
   config.table:save(ipath, installed)
 elseif args[1] == "upgrade" then
   for k, v in pairs(installed) do
