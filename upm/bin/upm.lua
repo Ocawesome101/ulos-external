@@ -255,12 +255,14 @@ local function install(packages)
     io.write(k, "  ")
   end
   
-  io.write("\n\nContinue? [Y/n] ")
-  repeat
-    local c = io.read("l")
-    if c == "n" then os.exit() end
-    if c ~= "y" and c ~= "" then io.write("Please enter 'y' or 'n': ") end
-  until c == "y" or c == ""
+  if not opts.y then
+    io.write("\n\nContinue? [Y/n] ")
+    repeat
+      local c = io.read("l")
+      if c == "n" then os.exit() end
+      if c ~= "y" and c ~= "" then io.write("Please enter 'y' or 'n': ") end
+    until c == "y" or c == ""
+  end
 
   log(pfx.info, "downloading packages")
   for k, v in pairs(to_install) do
