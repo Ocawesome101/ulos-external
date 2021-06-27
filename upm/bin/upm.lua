@@ -65,6 +65,8 @@ Available \27[93moption\27[39ms:\
   \27[93m-f\27[39m            Skip checks for package version and\
                               installation status.\
   \27[93m-v\27[39m            Be verbose;  overrides \27[93m-q\27[39m.\
+  \27[93m-y\27[39m            Automatically assume 'yes' for
+                              all prompts.
   \27[93m--root\27[39m=\27[33mPATH\27[39m   Treat \27[33mPATH\27[39m as the root filesystem\
                 instead of /.\
 \
