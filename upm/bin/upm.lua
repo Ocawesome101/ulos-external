@@ -67,9 +67,9 @@ Available \27[93moption\27[39ms:\
   \27[93m-v\27[39m            Be verbose;  overrides \27[93m-q\27[39m.\
   \27[93m--root\27[39m=\27[33mPATH\27[39m   Treat \27[33mPATH\27[39m as the root filesystem\
                 instead of /.\
-
-The ULOS Package Manager is copyright (c) 2021
-Ocawesome101 under the DSLv2.
+\
+The ULOS Package Manager is copyright (c) 2021\
+Ocawesome101 under the DSLv2.\
 "
 
 local pfx = {
