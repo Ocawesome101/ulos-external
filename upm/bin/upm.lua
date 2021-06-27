@@ -242,8 +242,8 @@ local function install(packages)
   end
 
   log(pfx.info, "resolving dependencies")
-  for i=2, #args, 1 do
-    dopkg(args[i])
+  for i=2, #packages, 1 do
+    dopkg(packages[i])
   end
 
   log(pfx.info, "packages to install: ")
