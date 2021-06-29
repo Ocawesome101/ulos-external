@@ -76,6 +76,7 @@ end
 if online then
   os.execute("upm update --root=/mnt")
   local pklist = {
+    "cldr",
     "cynosure",
     "refinement",
     "coreutils",
@@ -86,7 +87,7 @@ if online then
     pklist[#pklist+1] = "tle"
     pklist[#pklist+1] = "manpages"
   end
-  os.execute("upm install --root=/mnt " .. table.concat(pklist, " "))
+  os.execute("upm install -fy --root=/mnt " .. table.concat(pklist, " "))
 else
 -- TODO: do this some way other than hard-coding it
   local dirs = {
