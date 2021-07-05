@@ -42,7 +42,7 @@ else
         log.write(ld, "Bad TTY ID, for", f, "not starting login")
       else
         local handle, err = io.open("/sys/dev/" .. f, "rw")
-        handle.tty = true
+        handle.tty = n
         handle.buffer_mode = "none"
         if not handle then
           log.write(ld, "Failed opening TTY /sys/dev/" .. f .. ":", err)

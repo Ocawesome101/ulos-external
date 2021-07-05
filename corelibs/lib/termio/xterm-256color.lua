@@ -14,7 +14,7 @@ for k,v in pairs(default) do raw[k] = v end
 raw.oflag = 4
 raw.iflag = 0
 raw.lflag = 35376
-default.cc[2] = 8
+default.cc[2] = handler.keyBackspace
 
 function handler.setRaw(_raw)
   if _raw then
