@@ -3,7 +3,7 @@
 
 *{SYNOPSIS}
   ${sv} [*{up}|*{down}] *{service}
-  $[sv} *{list}
+  ${sv} *{list}
 
 *{DESCRIPTION}
   ${sv} is the ULOS service manager.  It hooks directly into Refinement's *{sv}(*{3}) API.
