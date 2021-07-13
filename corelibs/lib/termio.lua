@@ -59,7 +59,11 @@ local substitutions = {
 }
 
 local function getChar(char)
-  return string.char(96 + char:byte())
+  local byte = string.unpack("<I"..#char, char)
+  if byte + 96 > 255 then
+    return utf8.char(byte)
+  end
+  return string.char(96 + byte)
 end
 
 function lib.readKey()
