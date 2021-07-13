@@ -103,6 +103,9 @@ end
 
 local installed = upm.installed
 
+cfg.__load_order = nil
+for k,v in pairs(cfg) do v.__load_order = nil end
+
 if args[1] == "install" then
   if not args[2] then
     exit("command verb 'install' requires at least one argument")
