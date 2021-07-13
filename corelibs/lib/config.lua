@@ -47,12 +47,16 @@ lib.bracket = {new=new}
 
 local patterns = {
   bktheader = "^%[([%w_-]+)%]$",
-  bktkeyval = "^([%w_-]+)=(.+)",
+  bktkeyval = "^([%w_-]+) ?= ?(.+)",
 }
 
 local function pval(v)
   if v:sub(1,1):match("[\"']") and v:sub(1,1) == v:sub(-1) then
     v = v:sub(2,-2)
+  elseif v == "true" then
+    v = true
+  elseif v == "false" then
+    v = false
   else
     v = tonumber(v) or v
   end
@@ -76,8 +80,10 @@ function lib.bracket:load(file)
       if val:sub(1,1)=="[" and val:sub(-1)=="]" then
         local _v = val:sub(2,-2)
         val = {}
-        for _val in _v:gmatch("[^,]+") do
-          val[#val+1] = pval(_val)
+        if #_v > 0 then
+          for _val in _v:gmatch("[^,]+") do
+            val[#val+1] = pval(_val)
+          end
         end
       else
         val = pval(val)
