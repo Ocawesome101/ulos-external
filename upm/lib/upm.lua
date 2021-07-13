@@ -160,9 +160,10 @@ function extract(cfg, opts, package)
     if not handle then
       exit(opts, absolute .. ": " .. err)
     end
-    while true do
+    while len > 0 do
       local chunk = diter(math.min(len, 2048))
       if not chunk then break end
+      len = len - #chunk
       handle:write(chunk)
     end
     handle:close()
