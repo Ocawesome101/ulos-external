@@ -6,12 +6,14 @@ local upm = require("upm")
 
 local args, opts = require("argutil").parse(...)
 
-local cfg = config.bracket:load("/etc/upm.cfg") or {}
+local cfg = config.bracket:load("/etc/upm.cfg") or
+  {__load_order={"General","Repositories"}}
 
-cfg.General = cfg.General or {}
+cfg.General = cfg.General or {__load_order={"dataDirectory","cacheDirectory"}}
 cfg.General.dataDirectory = cfg.General.dataDirectory or "/etc/upm"
 cfg.General.cacheDirectory = cfg.General.cacheDirectory or "/etc/upm/cache"
-cfg.Repositories = cfg.Repositories or {main = "https://oz-craft.pickardayune.com/upm/main/"}
+cfg.Repositories = cfg.Repositories or {__load_order={"main"},
+  main = "https://oz-craft.pickardayune.com/upm/main/"}
 
 config.bracket:save("/etc/upm.cfg", cfg)
 

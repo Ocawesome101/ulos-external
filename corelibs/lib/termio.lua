@@ -15,7 +15,7 @@ function lib.setCursor(x, y)
   io.write(string.format("\27[%d;%dH", y, x))
 end
 
-function lib.getCursor(x, y)
+function lib.getCursor()
   if not (getHandler().ttyIn() and getHandler().ttyOut()) then
     return 1, 1
   end
@@ -44,6 +44,10 @@ function lib.getTermSize()
   lib.setCursor(cx, cy)
 
   return w, h
+end
+
+function lib.cursorVisible(vis)
+  getHandler().cursorVisible(vis)
 end
 
 ----------------- Keyboard input -----------------
