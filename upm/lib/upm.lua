@@ -109,6 +109,14 @@ function update(cfg, opts)
   end
 end
 
+local function progress(na, nb, a, b)
+  local n = math.floor(0.3 * (na / nb * 100))
+  io.stdout:write("\27[G[" ..
+    ("#"):rep(n) .. ("-"):rep(30 -  n)
+    .. "] (" .. a .. "/" .. b .. ")")
+  io.stdout:flush()
+end
+
 function download(opts, url, dest, total)
   log(opts, pfx.warn, "downloading ", url, " as ", dest)
   local out, err = io.open(dest, "w")
@@ -124,15 +132,12 @@ function download(opts, url, dest, total)
 
   local dl = 0
 
-  if total then io.write("\27[G\27[2K[]") io.flush() end
+  if total then io.write("\27[G\27[2K[]") io.stdout:flush() end
   repeat
     local chunk = handle:read(2048)
     if chunk then dl = dl + #chunk out:write(chunk) end
     if total then
-      io.write("\27[G[" ..
-        ("#"):rep(math.floor(0.2 * (dl / total * 100)))
-        .. "]")
-      io.flush()
+      progress(dl, total, size.format(dl), size.format(total))
     end
   until not chunk
   handle:close()
@@ -233,13 +238,16 @@ local function install(cfg, opts, packages)
     resolve(packages[i])
   end
 
-  log(opts, pfx.info, "packages to install: ")
+  local largest = 0
+  log(opts, pfx.info, "packages to install:")
   for k, v in pairs(to_install) do
     total_size = total_size + (v.data.size or 0)
-    io.write(k, "  ")
+    largest = math.max(largest, v.data.size)
+    io.write("  " .. k .. "-" .. v.data.version)
   end
 
   io.write("\n\nTotal download size: " .. size.format(total_size) .. "\n")
+  io.write("Space required: " .. size.format(total_size + largest) .. "\n")
   
   if not opts.y then
     io.write("Continue? [Y/n] ")
@@ -258,6 +266,9 @@ local function install(cfg, opts, packages)
   log(opts, pfx.info, "installing packages")
   for k, v in pairs(to_install) do
     install_package(cfg, opts, k, v)
+    -- remove package mtar - it just takes up space now
+    fs.remove(path.concat(opts.root, cfg.General.cacheDirectory,
+      k .. ".mtar"))
   end
 end
 
@@ -282,9 +293,14 @@ local function remove(cfg, opts, args)
       log(opts, pfx.err, "package ", args[i], " is not installed")
     else
       log(opts, pfx.info, "removing files")
+      local removed = 0
+      io.write("\27[G\27[2K")
       for i, file in ipairs(ent.files) do
+        removed = removed + 1
         rm("-rf", path.concat(opts.root, file))
+        progress(removed, #ent.files, tostring(removed), tostring(#ent.files))
       end
+      io.write("\27[G\27[2K")
       log(opts, pfx.info, "unregistering package")
       installed[args[i]] = nil
     end
