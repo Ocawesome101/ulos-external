@@ -4,6 +4,7 @@ local fs = require("filesystem")
 local path = require("path")
 local tree = require("futil").tree
 local mtar = require("mtar")
+local size = require("size")
 local config = require("config")
 local network = require("network")
 local filetypes = require("filetypes")
@@ -108,7 +109,7 @@ function update(cfg, opts)
   end
 end
 
-function download(opts, url, dest)
+function download(opts, url, dest, total)
   log(opts, pfx.warn, "downloading ", url, " as ", dest)
   local out, err = io.open(dest, "w")
   if not out then
@@ -121,12 +122,22 @@ function download(opts, url, dest)
     exit(opts, err)
   end
 
+  local dl = 0
+
+  if total then io.write("\27[G\27[2K[]") io.flush() end
   repeat
     local chunk = handle:read(2048)
-    if chunk then out:write(chunk) end
+    if chunk then dl = dl + #chunk out:write(chunk) end
+    if total then
+      io.write("\27[G[" ..
+        ("#"):rep(math.floor(0.2 * (dl / total * 100)))
+        .. "]")
+      io.flush()
+    end
   until not chunk
   handle:close()
   out:close()
+  if total then io.write("\27[G\27[K") end
 end
 
 function extract(cfg, opts, package)
@@ -184,8 +195,10 @@ function install_package(cfg, opts, name)
 end
 
 local function dl_pkg(cfg, opts, name, repo, data)
-  download(opts, cfg.Repositories[repo] .. data.mtar,
-    path.concat(opts.root, cfg.General.cacheDirectory, name .. ".mtar"))
+  download(opts,
+    cfg.Repositories[repo] .. data.mtar,
+    path.concat(opts.root, cfg.General.cacheDirectory, name .. ".mtar"),
+    data.size)
 end
 
 local function install(cfg, opts, packages)
@@ -193,7 +206,7 @@ local function install(cfg, opts, packages)
     exit(opts, "no packages to install")
   end
   
-  local to_install = {}
+  local to_install, total_size = {}, 0
   local resolve, resolving = nil, {}
   resolve = function(pkg)
     local data, repo = search(cfg, opts, pkg)
@@ -221,14 +234,15 @@ local function install(cfg, opts, packages)
   end
 
   log(opts, pfx.info, "packages to install: ")
-  for k in pairs(to_install) do
+  for k, v in pairs(to_install) do
+    total_size = total_size + (v.data.size or 0)
     io.write(k, "  ")
   end
 
-  io.write("\n")
+  io.write("\n\nTotal download size: " .. size.format(total_size) .. "\n")
   
   if not opts.y then
-    io.write("\nContinue? [Y/n] ")
+    io.write("Continue? [Y/n] ")
     repeat
       local c = io.read("l")
       if c == "n" then os.exit() end
@@ -242,8 +256,8 @@ local function install(cfg, opts, packages)
   end
 
   log(opts, pfx.info, "installing packages")
-  for k in pairs(to_install) do
-    install_package(cfg, opts, k)
+  for k, v in pairs(to_install) do
+    install_package(cfg, opts, k, v)
   end
 end
 
