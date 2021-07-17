@@ -1,3 +1,3 @@
-ULOS r1.3.
+ULOS r1.4.
 
 Core utilities are available in /bin and /sbin.  Services are configured in /etc/rf.cfg.  Manual pages are available for most libraries and utilities.  Please report bugs at https://github.com/ocawesome101/oc-ulos/issues.
