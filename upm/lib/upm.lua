@@ -7,6 +7,7 @@ local mtar = require("mtar")
 local size = require("size")
 local config = require("config")
 local network = require("network")
+local computer = require("computer")
 local filetypes = require("filetypes")
 
 local pfx = {
@@ -131,13 +132,17 @@ function download(opts, url, dest, total)
   end
 
   local dl = 0
+  local lbut = 0
 
   if total then io.write("\27[G\27[2K[]") io.stdout:flush() end
   repeat
     local chunk = handle:read(2048)
     if chunk then dl = dl + #chunk out:write(chunk) end
     if total then
-      progress(dl, total, size.format(dl), size.format(total))
+      if computer.uptime() - lbut > 0.5 or dl >= total then
+        lbut = computer.uptime()
+        progress(dl, total, size.format(dl), size.format(total))
+      end
     end
   until not chunk
   handle:close()
