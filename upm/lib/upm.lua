@@ -199,9 +199,23 @@ function install_package(cfg, opts, name)
   if not data then
     exit(opts, "failed reading metadata for package " .. name .. ": " .. err)
   end
+  local old_data = installed[name] or {info={version=0},files={}}
   local files = extract(cfg, opts, path.concat(opts.root, cfg.General.cacheDirectory, name .. ".mtar"))
   installed[name] = {info = data, files = files}
   config.table:save(ipath, installed)
+
+  -- remove files that were previously present in this package but aren't
+  -- anymore.  TODO: check for file ownership by other packages, and remove
+  -- directories.
+  local files_to_remove = {}
+  local map = {}
+  for k, v in pairs(files) do map[v] = true end
+  for i, check in ipairs(old_data.files) do
+    if not map[check] then
+      files_to_remove[#files_to_remove+1] = check
+    end
+  end
+  os.execute("rm -rf " .. table.concat(files_to_remove, " "))
 end
 
 local function dl_pkg(cfg, opts, name, repo, data)

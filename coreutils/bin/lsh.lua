@@ -537,7 +537,9 @@ while true do
   if #history > 32 then
     table.remove(history, 1)
   end
+  io.write("\27?11;12;3s")
   local ok, err = processCommand(command)
+  io.write("\27?1;2;13s")
   if not ok and err then
     io.stderr:write(err, "\n")
   end

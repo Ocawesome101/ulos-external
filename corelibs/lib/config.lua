@@ -113,7 +113,7 @@ function lib.bracket:save(file, cfg)
           data = data .. serializer(vv) .. (kk < #_v and "," or "")
         end
         data = data .. "]"
-      elseif _v then
+      else
         data = data .. serializer(_v)
       end
     end

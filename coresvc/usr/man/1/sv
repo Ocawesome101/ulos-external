@@ -2,7 +2,9 @@
   sv - manage services
 
 *{SYNOPSIS}
-  ${sv} [*{up}|*{down}] *{service}
+  ${sv} [*{up}|*{down}|*{enable}|*{disable}] *{service}
+  ${sv} *{add} [*{script}|*{service}] *{name} *{file}
+  ${sv} *{del service}
   ${sv} *{list}
 
 *{DESCRIPTION}
@@ -14,6 +16,18 @@
 
     *{down}
       Stop the specified *{service}, if it is running.
+
+    *{enable}
+      Enable the specified *{service} to run on system startup.
+
+    *{disable}
+      Disable the specified *{service} from running on system startup.
+
+    *{add}
+      Add a script or service of the specified *{name}, whose file is specified by the provided *{file} argument, to the Refinement configuration.
+
+    *{del}
+      Remove a script or service from the Refinement configuration entirely.
 
     *{list}
       List running services.
