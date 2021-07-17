@@ -215,7 +215,9 @@ function install_package(cfg, opts, name)
       files_to_remove[#files_to_remove+1] = check
     end
   end
-  os.execute("rm -rf " .. table.concat(files_to_remove, " "))
+  if #files_to_remove > 0 then
+    os.execute("rm -rf " .. table.concat(files_to_remove, " "))
+  end
 end
 
 local function dl_pkg(cfg, opts, name, repo, data)
