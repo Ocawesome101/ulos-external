@@ -528,10 +528,10 @@ end
 
 local history = {}
 local rlopts = {
-  history = history
+  history = history,
 }
 while true do
-  io.write("\27[0m\27?0c", processPrompt(os.getenv("PS1")))
+  io.write("\27[0m\27?0c\27?0s", processPrompt(os.getenv("PS1")))
   local command = readline(rlopts)
   history[#history+1] = command
   if #history > 32 then

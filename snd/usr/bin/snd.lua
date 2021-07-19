@@ -1,0 +1,9 @@
+-- sound format:
+-- header:
+-- 3 bytes signature "\19\14\4"
+-- 4 bits number of channels
+-- 4 bits unused
+-- data (repeat for each channel):
+-- 4 bits channel
+-- 4 bits voice
+-- 2 bytes frequency (max 2000)
