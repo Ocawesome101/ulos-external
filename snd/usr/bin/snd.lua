@@ -1,21 +1,30 @@
 -- sound format:
 -- header:
 -- 3 bytes signature "\19\14\4"
--- 4 bits number of channels
--- 4 bits unused
+-- 8 bits number of channels (max 8 in OpenComputers)
 -- data (repeat for each channel):
 -- 4 bits channel
 -- 4 bits voice
 -- 1 byte note (0 = A0, 1 = A#0, 2 = B0, 3 = C1, ...)
+
+local SIG_DATA = "\19\14\4"
 
 local args, opts = require("argutil").parse(...)
 
 if #args == 0 or opts.help then
   io.stderr:write([[
 usage: snd <FILE>
+Plays back music stored in the specified FILE.
+See snd(5) for format information.
+
+'snd' utility and format (c) 2021 Ocawesome101
+under the DSLv2.
 ]])
   os.exit(1)
 end
+
+-- get sound card
+local sound = require("sound")
 
 -- all notes in octave 0
 -- assume note 0 is A
@@ -61,6 +70,28 @@ local function getFrequency(index)
   return freq
 end
 
-print(getNote(0), getFrequency(0))
-print(getNote(12), getFrequency(12))
-print(getNote(24), getFrequency(24))
+local handle, err = io.open(args[1], "r")
+
+if not handle then
+  io.stderr:write("snd: ", args[1], ": ", err, "\n")
+  os.exit(1)
+end
+
+local sig = handle:read(3)
+if sig ~= SIG_DATA then
+  io.stderr:write("snd: file has bad signature - exiting\n")
+  os.exit(2)
+end
+
+-- up to 15 channels, minimum of 0
+local channels = handle:read(1):byte()
+if channels == 0 then
+  io.stderr:write("snd: no channels - exiting\n")
+  os.exit(0)
+end
+
+if channels > sound.MAX_CHANNELS then
+  io.stderr:write(string.format("snd: too many channels (max %d, got %d)\n",
+    sound.MAX_CHANNELS, channels))
+  os.exit(3)
+end
