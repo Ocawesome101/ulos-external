@@ -26,6 +26,14 @@ end
 -- get sound card
 local sound = require("sound")
 
+local voices = {
+  sound.voice.SINE,
+  sound.voice.SQUARE,
+  sound.voice.TRIANGLE,
+  sound.voice.SAWTOOTH,
+  sound.voice.NOISE
+}
+
 -- all notes in octave 0
 -- assume note 0 is A
 local o0 = {
