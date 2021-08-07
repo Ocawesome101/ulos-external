@@ -2,10 +2,12 @@
 -- header:
 -- 3 bytes signature "\19\14\4"
 -- 8 bits number of channels (max 8 in OpenComputers)
+-- data header:
+-- 2 bytes duration (in ms)
 -- data (repeat for each channel):
--- 4 bits channel
--- 4 bits voice
--- 1 byte note (0 = A0, 1 = A#0, 2 = B0, 3 = C1, ...)
+-- 8 bits voice
+-- 1 byte note (0 = A0, 1 = A#0, 2 = B0, 3 = C1, ...),
+-- 1 byte volume
 
 local SIG_DATA = "\19\14\4"
 
@@ -25,6 +27,8 @@ end
 
 -- get sound card
 local sound = require("sound")
+
+print("card type: " .. sound.CARD_TYPE)
 
 local voices = {
   sound.voice.SINE,
@@ -67,13 +71,13 @@ local names = {
 }
 
 local function getNote(index)
-  local absolute = index % 12
-  return names[absolute]
+  local absolute = (index + 1) % 12
+  return names[absolute] .. math.floor(index / 12)
 end
 
 local function getFrequency(index)
   local freq = o0[index % 12]
-  local times = index // 12
+  local times = index // 12 - 1
   for i=1, times, 1 do freq = freq * 2 end
   return freq
 end
@@ -102,4 +106,27 @@ if channels > sound.MAX_CHANNELS then
   io.stderr:write(string.format("snd: too many channels (max %d, got %d)\n",
     sound.MAX_CHANNELS, channels))
   os.exit(3)
+end
+
+while true do
+  local data = {}
+  local _d = handle:read(2)
+  if #_d < 2 then os.exit() end
+  local duration = string.unpack("<I2", _d)
+  for i=1, channels, 1 do
+    local chunk = handle:read(3)
+    if not chunk then os.exit() end
+    local voice, note, volume = chunk:byte(1), chunk:byte(2), chunk:byte(3)
+    if voice > 0 then
+      data[i] = {
+        getFrequency(note),
+        duration,
+        math.floor(volume / 2.55),
+        voices[voice]
+      }
+      print(i, note, table.unpack(data[i], 2))
+    end
+  end
+  sound.play(data)
+  os.sleep(duration / 1000)
 end

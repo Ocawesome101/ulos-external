@@ -30,9 +30,9 @@ local infile, outfile = assert(io.open(args[1], "r")),
 
 local header = infile:read("l")
 
-local words = text.split(header, " ")
+header = text.split(header, " ")
 
-local channels, tempo, time = table.unpack(words)
+local channels, tempo, time = table.unpack(header)
 channels, tempo = tonumber(channels), tonumber(tempo)
 
 local values = {
@@ -51,7 +51,7 @@ local function note_to_value(name)
     return
   end
   local val = tonumber(oct)*12
-  if not shp then val = val - 1 end
+  if shp then val = val + 1 end
   return val + values[let:lower()]
 end
 
@@ -59,4 +59,13 @@ outfile:write("\19\14\4" .. string.char(channels))
 
 for line in infile:lines("l") do
   local words = text.split(line, " ")
+  if #words >= channels + 1 then
+    local duration = math.floor(4000 * (1 / tonumber(words[1])))
+    local data = string.pack("<I2", duration)
+    for i=2, #words, 1 do
+      print("channel", i - 1, "note", words[i], "duration", duration, "voice", voicemap[header[i+2] or "sine"])
+      data = data .. string.char(voicemap[header[i + 2] or "sine"]) .. string.char(note_to_value(words[i]) or 0) .. string.char((words[i] == "-" and 0 or 255))
+    end
+    outfile:write(data)
+  end
 end
