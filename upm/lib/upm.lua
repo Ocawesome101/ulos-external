@@ -2,7 +2,6 @@
 
 local fs = require("filesystem")
 local path = require("path")
-local tree = require("futil").tree
 local mtar = require("mtar")
 local size = require("size")
 local config = require("config")

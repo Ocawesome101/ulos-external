@@ -1,0 +1,14 @@
+*{NAME}
+  upm - the ULOS Package Management API
+
+*{DESCRIPTION}
+  ${upm} is a flexible, state-based package management API.
+
+*{USAGE}
+  TODO
+
+*{COPYRIGHT}
+  ULOS Package Manager copyright (c) 2021 Ocawesome101 under the DSLv2.
+
+*{REPORTING BUGS}
+  Bugs should be reported at @{https://github.com/ocawesome101/oc-ulos/issues}.
