@@ -136,8 +136,8 @@ local function call(name, func, args, fio, nowait)
     os.execute = processCommand
 
     if fauxio then
-      io.output(fauxio)
-      io.stdout = fauxio
+      --io.output(fauxio)
+      --io.stdout = fauxio
     end
 
     local ok, err, ret = xpcall(func, debug.traceback, table.unpack(args))

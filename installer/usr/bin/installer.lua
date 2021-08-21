@@ -10,7 +10,7 @@ local div = true
 if w == 50 and h == 16 then div = false end
 local page, sel = 1, 2
 local pages = {
-  {
+  { -- [1] intro
     tui.Text {
       x = (div and w // 8) or 1,
       y = (div and h // 8) or 1,
@@ -24,12 +24,12 @@ and ENTER to select.]]
     },
     tui.Selectable {
       x = (div and (w // 8 + math.floor(w * 0.75)) or w) - 8,
-      y = (div and (h - (h // 8) - 3)) or (h - 1),
+      y = (div and (h - (h // 8) - 4)) or (h - 1),
       text = " Next ",
       selected = true
     }
   },
-  {
+  { -- [2] disk selection
     tui.Text {
       x = (div and w // 8) or 1,
       y = (div and h // 8) or 1,
@@ -39,14 +39,33 @@ and ENTER to select.]]
     },
     tui.Selectable {
       x = (div and (w // 8 + math.floor(w * 0.75)) or w) - 8,
-      y = (div and (h - (h // 8) - 3)) or (h - 1),
+      y = (div and (h - (h // 8) - 4)) or (h - 1),
       text = " Back ",
       selected = false
     },
   },
-  { -- 
+  { -- [3] installation method
+    tui.Text {
+      x = (div and w // 8) or 1,
+      y = (div and h // 8) or 1,
+      width = (div and (w // 2) + (w // 4)) or w,
+      height = ((div and (h // 2) + (h // 4)) or h) - 1,
+      text = "Select your desired installation method."
+    },
+    tui.Selectable {
+      x = (div and w // 8 or 0) + 2,
+      y = (div and h // 8 or 1) + 3,
+      text = require("text").padLeft(math.floor(w * 0.75) - 4,
+        "Online (recommended, requires internet card)")
+    },
+    tui.Selectable {
+      x = (div and w // 8 or 0) + 2,
+      y = (div and h // 8 or 1) + 4,
+      text = require("text").padLeft(math.floor(w * 0.75) - 4,
+        "Offline")
+    }
   },
-  {
+  { -- [4] finished!
   }
 }
 
@@ -64,15 +83,15 @@ do
   end
 end
 
-local function clear()
+local function clear(H)
   io.write("\27[44;97m\27[2J\27[" .. math.floor(h) .. ";1HUP/DOWN select or scroll / ENTER selects")
   if div then
     local ln = "\27[47m" .. string.rep(" ", math.floor(w * 0.75)) .. "\27[40m "
     io.write("\27[47m")
-    for i=1, math.floor(h * 0.75), 1 do
+    for i=1, H or math.floor(h * 0.75), 1 do
       io.write(string.format("\27[%d;%dH%s", h // 8 + i - 1, w // 8, ln))
     end
-    io.write(string.format("\27[%d;%dH%s", h // 8 + math.floor(h * 0.75),
+    io.write(string.format("\27[%d;%dH%s", h // 8 + (H or math.floor(h * 0.75)),
       w // 8, ln:sub(6) .. "\27[47;97m"))
   end
 end
@@ -86,12 +105,42 @@ local function refresh()
   io.write(wrbuf)
 end
 
-local function install()
+local sel_fs
+local function preinstall()
+  os.execute("mount -u /mnt")
+  os.execute("mount " .. sel_fs .. " /mnt")
+  clear(5)
+end
+
+local function install_online()
+  local pklist = {
+    "cldr",
+    "cynosure",
+    "refinement",
+    "coreutils",
+    "corelibs",
+    "upm"
+  }
+  local upm = loadfile("/bin/upm.lua")
+  local ios = {
+    write = function(...)
+      io.write()
+    end
+  }
+end
+
+local function install_offline()
+  local dirs = {
+    "bin",
+    "etc",
+    "lib",
+    "sbin",
+    "usr",
+    "init.lua"
+  }
 end
 
 clear()
-
-local sel_fs
 while true do
   refresh()
   local key, flags = termio.readKey()
@@ -110,29 +159,28 @@ while true do
           page = page - 1
           clear()
         elseif sel > 2 then
-          sel_fs = pages[2][sel].text
+          sel_fs = pages[2][sel].text:gsub(" +", "")
           page = page + 1
           sel = 2
           clear()
         end
+      elseif page == 3 then
+        if sel == 2 then
+          install_online()
+          page = page + 1
+        elseif sel == 3 then
+          install_offline()
+          page = page + 1
+        end
+      elseif page == 4 then
       end
     end
   elseif key == "up" then
     if sel > 1 then
-      --local osel = sel
-      --repeat
-      --  osel = osel - 1
-      --until osel == 0 or pages[page][osel].selectable
-      --if osel > 0 then sel = osel end
       sel = sel - 1
     end
   elseif key == "down" then
     if sel < #pages[page] then
-      --local osel = sel
-      --repeat
-      --  osel = osel + 1
-      --until osel > #pages[page] or pages[page][osel].selectable
-      --if osel < #pages[page] then sel = osel end
       sel = sel + 1
     end
   end
