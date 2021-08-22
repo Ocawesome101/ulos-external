@@ -534,6 +534,14 @@ io.popen = function(command, mode)
   return handle
 end
 
+if opts.exec then
+  local ok, err = processCommand(opts.exec)
+  if not ok and err then
+    io.stderr:write(err, "\n")
+  end
+  os.exit()
+end
+
 local history = {}
 local rlopts = {
   history = history,

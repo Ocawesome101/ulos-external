@@ -212,11 +212,18 @@ local function install_offline(wrapped)
   }
 
   for i, dir in ipairs(dirs) do
-    if not wdofile(wrapped, "/bin/cp.lua", "-rv", table.unpack(dirs),
+    if not wdofile(wrapped, "/bin/cp.lua", "-rv", dir,
         "/mnt/" .. dir) then
       return false
     end
   end
+
+  wrapped:write("Removing installer-specific configuration\n")
+  
+  wdofile(wrapped, "/bin/cp.lua", "-rfv", "/usr/share/installer/rf.cfg",
+    "/mnt/etc/rf.cfg")
+  wdofile(wrapped, "/bin/rm.lua", "-rfv", "/mnt/etc/rf/startinst.lua")
+
   return true
 end
 
