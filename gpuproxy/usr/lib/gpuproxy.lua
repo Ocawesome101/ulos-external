@@ -45,7 +45,8 @@ return {
     wrap.maxResolution = wrap.getResolution
     wrap.setResolution = function() end
     wrap.set = function(_x, _y, t, v) return px.set(
-      x + _x - 1, y + _y - 1, t, v) end
+      x + _x - 1, y + _y - 1,
+      t:sub(0, (v and h or w) - (v and _y or _x)), v) end
     wrap.get = function(_x, _y) return px.get(x + _x - 1, y + _y - 1) end
     wrap.fill = function(_x, _y, _w, _h, c) return px.fill(
       x + _x - 1, y + _y - 1, math.min(w - _x, _w), math.min(h - _y, _h), c) end

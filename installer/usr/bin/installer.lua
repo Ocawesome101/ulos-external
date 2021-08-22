@@ -86,13 +86,17 @@ end
 local function clear()
   io.write("\27[44;97m\27[2J\27[" .. math.floor(h) .. ";1HUP/DOWN select or scroll / ENTER selects")
   if div then
-    local ln = "\27[47m" .. string.rep(" ", math.floor(w * 0.75)) .. "\27[40m "
+    local x, y, W, H = w // 8, h // 8, math.floor(w * 0.75),
+      math.floor(h * 0.75)
+    --[[local ln = "\27[47m" .. string.rep(" ", math.floor(w * 0.75)) .. "\27[40m "
     io.write("\27[47m")
     for i=1, math.floor(h * 0.75), 1 do
       io.write(string.format("\27[%d;%dH%s", h // 8 + i - 1, w // 8, ln))
     end
     io.write(string.format("\27[%d;%dH%s", h // 8 + math.floor(h * 0.75),
-      w // 8, ln:sub(6) .. "\27[47;97m"))
+      w // 8, ln:sub(6) .. "\27[47;97m"))]]
+    io.write(string.format("\27[40m\27[%d;%d;%d;%dF", x+2, y+1, W, H))
+    io.write(string.format("\27[47m\27[%d;%d;%d;%dF", x, y, W, H))
   end
 end
 
@@ -136,20 +140,46 @@ local function install_online(wrapped)
     "upm"
   }
   local upm = loadfile("/bin/upm.lua")
+  local process = require("process")
 
-  local oi, oo, oe = io.stdin, io.stdout, io.stderr
-  io.stdin, io.stdout, io.stderr = wrapped
-  io.input(wrapped)
-  io.output(wrapped)
   wrapped:write("\27[2J")
 
-  pcall(upm, "install", "-fy", table.unpack(pklist))
-  
-  io.stdin, io.stdout, io.stderr = oi, oo, oe
-  io.input(oi)
-  io.output(oo)
+  -- error handling taken from lsh
+  local function proc()
+    local ok, err, ret = xpcall(upm, debug.traceback, "update", "--root=/mnt")
+    if ok then
+      ok, err, ret = xpcall(upm, debug.traceback, "install", "-fy",
+        "--root=/mnt", table.unpack(pklist))
+    end
 
-  return true
+    if (not ok and err) or (not err and ret) then
+      io.stderr:write("upm: ", err or ret, "\n")
+      os.exit(127)
+    end
+
+    os.exit(0)
+  end
+
+  local pid = process.spawn {
+    func = proc,
+    name = "upm",
+    -- stdin unchanged
+    stdout = wrapped,
+    stderr = wrapped,
+    -- input unchanged
+    output = wrapped
+  }
+
+  local es, er = process.await(pid)
+  
+  require("tty").delete(wrapped.tty)
+  
+  if es == 0 then
+    return true
+  else
+    sel = 1
+    return false
+  end
 end
 
 local function install_offline(wrapped)
@@ -161,8 +191,46 @@ local function install_offline(wrapped)
     "usr",
     "init.lua"
   }
-  wrapped:write("\27[2Jthis is a test\n")
+
+  local cp = loadfile("/bin/cp.lua") 
+  local process = require("process")
+
+  wrapped:write("\27[2J")
+
+  local function proc()
+    for i, dir in ipairs(dirs) do
+      local ok, err, ret = xpcall(cp, debug.traceback, "-rv",
+        table.unpack(dirs), "/mnt/" .. dir)
+
+      if (not ok and err) or (not err and ret) then
+        io.stderr:write("cp: ", err or ret, "\n")
+        os.exit(127)
+      end
+    end
+
+    os.exit(0)
+  end
+
+  local pid = process.spawn {
+    func = proc,
+    name = "cp",
+    -- stdin unchanged
+    stdout = wrapped,
+    stderr = wrapped,
+    -- input unchanged
+    output = wrapped
+  }
+
+  local es, er = process.await(pid)
+  
   require("tty").delete(wrapped.tty)
+  
+  if es == 0 then
+    return true
+  else
+    sel = 1
+    return false
+  end
 end
 
 clear()
@@ -191,11 +259,21 @@ while true do
         end
       elseif page == 3 then
         if sel == 2 then
-          install_online(preinstall())
-          page = page + 1
+          if install_online(preinstall()) then
+            page = page + 1
+            clear()
+          else
+            os.sleep(5)
+            clear()
+          end
         elseif sel == 3 then
-          install_offline(preinstall())
-          page = page + 1
+          if install_offline(preinstall()) then
+            page = page + 1
+            clear()
+          else
+            os.sleep(5)
+            clear()
+          end
         end
       elseif page == 4 then
       end

@@ -35,8 +35,10 @@ tui.Text = class {
   refresh = function(self, x, y)
     local wbuf = "\27[34;47m"
     for i=self.scroll+1, self.height - 2, 1 do
-      wbuf = wbuf .. (string.format("\27[%d;%dH%s", y+self.y+i-1, x+self.x,
-        require("text").padLeft(self.width - 2, self.text[i] or "")))
+      if self.text[i] then
+        wbuf = wbuf .. (string.format("\27[%d;%dH%s", y+self.y+i-1, x+self.x,
+          require("text").padLeft(self.width - 2, self.text[i] or "")))
+      end
     end
     return wbuf
   end
