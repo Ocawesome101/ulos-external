@@ -5,10 +5,9 @@ local args, opts = require("argutil").parse(...)
 if opts.help then
   io.stderr:write([[
 usage: install
-Install ULOS to a writable medium.  Only present
-in the live system image.
+Install ULOS to a writable medium.
 
-ULOS Coreutils (c) 2021 Ocawesome101 under the
+ULOS Installer (c) 2021 Ocawesome101 under the
 DSLv2.
 ]])
   os.exit(1)
