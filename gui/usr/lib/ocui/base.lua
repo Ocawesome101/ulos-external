@@ -2,7 +2,7 @@
 
 local nci = require("ocui.object")
 local getgpu = require("ocui.getgpu")
-local gpuproxy = require("ocui.gpuproxy")
+local gpuproxy = require("gpuproxy").buffer
 local class, inherit, new = nci()
 
 _ENV.class = class

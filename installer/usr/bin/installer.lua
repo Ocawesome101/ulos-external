@@ -83,15 +83,15 @@ do
   end
 end
 
-local function clear(H)
+local function clear()
   io.write("\27[44;97m\27[2J\27[" .. math.floor(h) .. ";1HUP/DOWN select or scroll / ENTER selects")
   if div then
     local ln = "\27[47m" .. string.rep(" ", math.floor(w * 0.75)) .. "\27[40m "
     io.write("\27[47m")
-    for i=1, H or math.floor(h * 0.75), 1 do
+    for i=1, math.floor(h * 0.75), 1 do
       io.write(string.format("\27[%d;%dH%s", h // 8 + i - 1, w // 8, ln))
     end
-    io.write(string.format("\27[%d;%dH%s", h // 8 + (H or math.floor(h * 0.75)),
+    io.write(string.format("\27[%d;%dH%s", h // 8 + math.floor(h * 0.75),
       w // 8, ln:sub(6) .. "\27[47;97m"))
   end
 end
@@ -109,10 +109,24 @@ local sel_fs
 local function preinstall()
   os.execute("mount -u /mnt")
   os.execute("mount " .. sel_fs .. " /mnt")
-  clear(5)
+  
+  -- this is the easiest way to do this
+  local gpuproxy = require("gpuproxy")
+  local tty = require("tty")
+  local __gpu = tty.getgpu(io.stderr.tty)
+  local wrapped
+
+  if div then
+    wrapped = gpuproxy.area(__gpu, w // 8 + 1, h // 8 + 1,
+      math.floor(w * 0.75) - 1, math.floor(h * 0.75) - 1)
+  else
+    wrapped = gpuproxy.area(__gpu, 2, 2, w - 2, h - 2)
+  end
+
+  return tty.create(wrapped)
 end
 
-local function install_online()
+local function install_online(wrapped)
   local pklist = {
     "cldr",
     "cynosure",
@@ -122,14 +136,23 @@ local function install_online()
     "upm"
   }
   local upm = loadfile("/bin/upm.lua")
-  local ios = {
-    write = function(...)
-      io.write()
-    end
-  }
+
+  local oi, oo, oe = io.stdin, io.stdout, io.stderr
+  io.stdin, io.stdout, io.stderr = wrapped
+  io.input(wrapped)
+  io.output(wrapped)
+  wrapped:write("\27[2J")
+
+  pcall(upm, "install", "-fy", table.unpack(pklist))
+  
+  io.stdin, io.stdout, io.stderr = oi, oo, oe
+  io.input(oi)
+  io.output(oo)
+
+  return true
 end
 
-local function install_offline()
+local function install_offline(wrapped)
   local dirs = {
     "bin",
     "etc",
@@ -138,6 +161,8 @@ local function install_offline()
     "usr",
     "init.lua"
   }
+  wrapped:write("\27[2Jthis is a test\n")
+  require("tty").delete(wrapped.tty)
 end
 
 clear()
@@ -166,10 +191,10 @@ while true do
         end
       elseif page == 3 then
         if sel == 2 then
-          install_online()
+          install_online(preinstall())
           page = page + 1
         elseif sel == 3 then
-          install_offline()
+          install_offline(preinstall())
           page = page + 1
         end
       elseif page == 4 then

@@ -1,6 +1,6 @@
 -- window object --
 
-local gpuproxy = require("ocui.gpuproxy")
+local gpuproxy = require("gpuproxy").buffer
 require("ocui.button")
 require("ocui.label")
 local colors = require("ocui.colors")
