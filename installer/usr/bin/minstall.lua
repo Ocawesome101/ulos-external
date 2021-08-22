@@ -105,6 +105,7 @@ else
   os.execute("rm /mnt/bin/install.lua")
 end
 
-print([[The base system has now been installed.  Remove the installation medium and restart your computer.
+print("The base system has now been installed.")
 
-The only user account set up by default is the 'root' account with which you logged in to this installation image.  See passwd(1) for details on adding new user accounts.]])
+os.execute("mkpasswd -i /mnt/etc/passwd")
+os.execute("hnsetup")

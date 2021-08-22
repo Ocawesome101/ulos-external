@@ -41,7 +41,7 @@ return {
 
   area = function(px, x, y, w, h)
     local wrap = setmetatable({}, {__index = px})
-    function wrap.getResolution() return w, h end
+    function wrap.getResolution() return w, h - 1 end
     wrap.maxResolution = wrap.getResolution
     wrap.setResolution = function() end
     wrap.set = function(_x, _y, t, v) return px.set(
@@ -52,8 +52,10 @@ return {
       x + _x - 1, y + _y - 1, math.min(w - _x, _w), math.min(h - _y, _h), c) end
     wrap.copy = function(_x, _y, _w, _h, rx, ry) return px.copy(
       x + _x - 1, y + _y - 1,
-      math.min(w - _x, _w), math.min(h - _y, _h),
+      math.min(w - _x + 1, _w), math.min(h - _y + 1, _h),
       rx, ry) end
+
+    wrap.getScreen = px.getScreen
 
     return wrap
   end

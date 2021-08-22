@@ -66,6 +66,13 @@ and ENTER to select.]]
     }
   },
   { -- [4] finished!
+    tui.Text {
+      x = (div and w // 8) or 1,
+      y = (div and h // 8) or 1,
+      width = (div and math.floor(w * 0.75)) or w,
+      height = ((div and math.floor(h * 0.75)) or h) - 1,
+      text = "The ULOS Installation process is now complete.  Remove the installation medium and reboot."
+    },
   }
 }
 
@@ -120,21 +127,24 @@ local function preinstall()
     wrapped = gpuproxy.area(__gpu, 2, 2, w - 2, h - 2)
   end
 
-  return tty.create(wrapped)
+  local new = tty.create(wrapped)
+  io.write("\27?15c")
+  io.flush()
+  new:write("\27?4c")
+  
+  return new
 end
 
 local function wdofile(ios, file, ...)
   local func = loadfile(file)
   local process = require("process")
 
-  wrapped:write("\27[2J")
+  local args = table.pack(...)
 
   -- error handling taken from lsh
   local function proc()
-    local ok, err, ret = xpcall(func, debug.traceback, ...)
-    if ok then
-      ok, err, ret = xpcall(func, ...)
-    end
+    local ok, err, ret = xpcall(func, debug.traceback,
+      table.unpack(args, 1, args.n))
 
     if (not ok and err) or (not err and ret) then
       io.stderr:write(file, ": ", err or ret, "\n")
@@ -147,10 +157,10 @@ local function wdofile(ios, file, ...)
   local pid = process.spawn {
     func = proc,
     name = file,
-    -- stdin unchanged
+    stdin = ios,
     stdout = ios,
     stderr = ios,
-    -- input unchanged
+    input = ios,
     output = ios
   }
 
@@ -165,7 +175,11 @@ end
 
 local function postinstall(wrapped)
   os.execute("mkdir -p /mnt/root")
-  wdofile(wrapped, "/usr/bin/mkpasswd.lua", "/mnt/etc/passwd")
+  wdofile(wrapped, "/usr/bin/mkpasswd.lua", "-i", "/mnt/etc/passwd")
+  wdofile(wrapped, "/usr/bin/hnsetup.lua")
+
+  io.write("\27?5c")
+  io.flush()
 
   require("tty").delete(wrapped.tty)
 end
