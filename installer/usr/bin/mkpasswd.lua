@@ -93,11 +93,15 @@ local function getACLs()
   for i, v in ipairs(acls) do
     io.write(string.format("  %d) %s\n", i, v[1]))
   end
-  local inp = "2"
-  while inp:match("[^01]") do
-    inp = prompt("Enter a permissions bitmap (ex. 010011010)")
+  local inp = "A"
+  while inp:match("[^%d,]") do
+    inp = prompt("Enter a comma-separated list (e.g. 1,2,5,9)")
   end
-  return tonumber(inp, 2)
+  local n = 0
+  for _n in inp:gmatch("[^,]+") do
+    n = n | acls[tonumber(_n)][2]
+  end
+  return n
 end
 
 print("ULOS Installer Account Setup Utility v0.5.0 (c) Ocawesome101 under the DSLv2.")
