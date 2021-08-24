@@ -12,6 +12,11 @@ if gpu.isProxy then
   os.exit(1)
 end
 
+local cfg = require("config").table:load("/etc/wm.cfg") or {}
+TERM_W = cfg.width or TERM_W
+TERM_H = cfg.height or TERM_H
+require("config").table:save("/etc/wm.cfg", {width = TERM_W, height = TERM_H})
+
 local w, h = gpu.getResolution()
 gpu.setBackground(0xAAAAAA)
 gpu.fill(1, 1, w, h, " ")
