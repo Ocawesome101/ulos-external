@@ -50,16 +50,20 @@ local function focus_window(id)
   windows[1].stream:write("\27?5c")
 end
 
+local rf_a = true
 local function refresh()
-  for i=#windows, 1, -1 do
-    gpu.bitblt(0, windows[i].x, windows[i].y, nil, nil, windows[i].buffer)
+  for i=(rf_a and #windows or 1), 1, -1 do
+    if windows[i] then
+      gpu.bitblt(0, windows[i].x, windows[i].y, nil, nil, windows[i].buffer)
+    end
   end
+  rf_a = false
   gpu.setBackground(0)
   gpu.setForeground(0xFFFFFF)
   gpu.set(1, 1, "Quit | ULOS Terminal Manager | Right-Click create/remove")
 end
 
-io.write("\27?15c")
+io.write("\27?15c\27?1;2;3s")
 io.flush()
 local screen = gpu.getScreen()
 local dragging, xo, yo = false, 0, 0
@@ -67,7 +71,7 @@ while true do
   refresh()
   local sig, scr, x, y, button = coroutine.yield(0)
   for i=1, #windows, 1 do
-    if not process.info(windows[i].pid) then
+    if windows[i] and not process.info(windows[i].pid) then
       local win = table.remove(windows, i)
       if #windows > 0 then focus_window(1) end
       tty.delete(win.stream.tty)
@@ -76,6 +80,7 @@ while true do
       closed = true
       gpu.setBackground(0xAAAAAA)
       gpu.fill(1, 1, w, h, " ")
+      rf_a = true
     end
   end
   if scr == screen then
@@ -95,6 +100,7 @@ while true do
             closed = true
             gpu.setBackground(0xAAAAAA)
             gpu.fill(1, 1, w, h, " ")
+            rf_a = true
           end
         end
         if not closed then new_window(x, y) end
@@ -103,6 +109,7 @@ while true do
           if x >= windows[i].x and x <= windows[i].x + TERM_W and
              y >= windows[i].y and y <= windows[i].y + TERM_H then
             focus_window(i)
+            rf_a = true
             dragging = true
             xo, yo = x - windows[i].x, y - windows[i].y
             break
@@ -114,8 +121,10 @@ while true do
       gpu.fill(windows[1].x, windows[1].y, TERM_W, TERM_H, " ")
       windows[1].x = x - xo
       windows[1].y = y - yo
+      rf_a = true
     elseif sig == "drop" then
       dragging = false
+      rf_a = true
       xo, yo = 0, 0
     end
   end
@@ -128,5 +137,5 @@ for i=1, #windows, 1 do
   gpu.freeBuffer(windows[i].buffer)
 end
 
-io.write("\27?5c\27[m\27[2J\27[1;1H")
+io.write("\27?5c\27?0s\27[m\27[2J\27[1;1H")
 io.flush()
