@@ -16,7 +16,7 @@ local function mkview(t)
       app.buttons:add {
         x = 3, y = 3 + i - skipped, text = a:gsub("%.lua$", ""), fg = 0,
         click = function()
-          local app = dofile("/usr/lib/apps/"..a)
+          local app = osgui.dofile("/usr/lib/apps/"..a)
           osgui.ui.add(app)
         end
       }
@@ -34,7 +34,7 @@ function app:init()
   self.y = 2
   self.w = 16
   mkview()
-  self.textboxes = textboxgroup()
+  self.textboxes = osgui.textboxgroup()
   self.textboxes:add {
     x = 3, y = 2, w = 12, bg = 0, fg = 0x888888,
     submit = function(t)

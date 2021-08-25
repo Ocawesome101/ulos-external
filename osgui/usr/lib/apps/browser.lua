@@ -50,7 +50,7 @@ local function prompt(f)
 end
 
 local function mkfolderview(f)
-  local buttons = buttongroup()
+  local buttons = osgui.buttongroup()
   local files = fs.list(f) or {}
   for i, file in ipairs(files) do
     buttons:add {
@@ -77,11 +77,11 @@ function app:init()
   self.x = 10
   self.y = 5
   self.w = 64
-  self.labels = labelgroup()
+  self.labels = osgui.labelgroup()
   self.labels:add {
     x = 3, y = 2, fg = 0x000000, text = "Path:"
   }
-  self.textboxes = textboxgroup()
+  self.textboxes = osgui.textboxgroup()
   self.textboxes:add {
     x = 8, y = 2, w = 52, fg = 0x888888, bg = 0x000000,
     text = CD or "/", submit = function(text)
@@ -91,7 +91,7 @@ function app:init()
     end
   }
   self.files = mkfolderview(CD or "/")
-  self.navigation = buttongroup()
+  self.navigation = osgui.buttongroup()
   self.navigation:add {
     x = 62, y = 2, fg = 0x888888, bg = 0x000000,
     text = "^", click = function()

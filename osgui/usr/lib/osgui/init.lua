@@ -2,6 +2,8 @@ local computer = require("computer")
 
 return function()
   local env = setmetatable({osgui = {}}, {__index = _G})
+  env._ENV=env
+  env._G=env
 
   local gpu = require("tty").getgpu(io.stderr.tty)
   if gpu.isProxy then
@@ -9,6 +11,11 @@ return function()
   end
 
   env.osgui.gpu = gpu
+
+  local w, h = gpu.getResolution()
+  gpu.setBackground(0x000040)
+  gpu.fill(1, 1, w, h, " ")
+
   function env.osgui.syserror(e)
     env.osgui.gpu.setBackground(0x808080)
     env.osgui.gpu.fill(40, 15, 80, 20, " ")
@@ -52,10 +59,21 @@ return function()
 
   local n = env.osgui.ui.add(loaduifile("/usr/lib/apps/launcher.lua"))
 
-  while true do
+  io.write("\27?15c\27?1;2;3s")
+  io.flush()
+  while not env.osgui.ui.logout do
     env.osgui.ui.tick()
     if not env.osgui.ui.running(n) then
       n = env.osgui.ui.add(loaduifile("/usr/lib/apps/launcher.lua"))
     end
   end
+
+  for i, window in ipairs(env.osgui.ui.__windows) do
+    if window.close then
+      pcall(window.close, window)
+    end
+  end
+
+  io.write("\27?5c\27[m\27[2J\27[1;1H")
+  io.flush()
 end

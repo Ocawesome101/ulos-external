@@ -8,7 +8,7 @@ function app:init()
   self.x = 1
   self.y = 1
   self.w = 21
-  self.h = 10
+  self.h = 11
   self.active = true
   self.buttons = osgui.buttongroup()
   self.buttons:add({
@@ -18,6 +18,10 @@ function app:init()
   self.buttons:add({
     x = 3, y = 9, text = "Restart",
     click = function()computer.shutdown(true)end
+  })
+  self.buttons:add({
+    x = 3, y = 10, text = "Log Out",
+    click = function()osgui.ui.logout=true end
   })
 end
 
@@ -42,12 +46,13 @@ function app:refresh()
       end
     end
   end
-  gpu.set(self.x + 2, self.y + 2, string.format("Free RAM: %s", free))
-  gpu.set(self.x + 2, self.y + 3, string.format("Total VRAM: %sk", gtm))
-  gpu.set(self.x + 2, self.y + 4, string.format("Free VRAM: %s", vfree))
-  gpu.set(self.x + 2, self.y + 5, string.format("Recomposited: %s",
+  osgui.gpu.set(self.x + 2, self.y + 2, string.format("Free RAM: %s", free))
+  osgui.gpu.set(self.x + 2, self.y + 3, string.format("Total VRAM: %sk", gtm))
+  osgui.gpu.set(self.x + 2, self.y + 4, string.format("Free VRAM: %s", vfree))
+  osgui.gpu.set(self.x + 2, self.y + 5, string.format("Recomposited: %s",
     osgui.ui.composited))
-  gpu.set(self.x + 2, self.y + 6, string.format("Total: %s", osgui.ui.nWindows))
+  osgui.gpu.set(self.x + 2, self.y + 6, string.format("Total: %s",
+    osgui.ui.nWindows))
   self.buttons:draw(self)
 end
 

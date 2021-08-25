@@ -7,6 +7,7 @@ require("component").invoke(osgui.gpu.getScreen(), "setPrecise", false)
 local oserr=osgui.syserror
 
 local windows = {}
+osgui.ui.__windows = windows
 
 local running = {}
 local erroring = false
@@ -92,10 +93,16 @@ function ui.tick()
   if s[1] == "touch" then
     local i = search(s[3], s[4])
     if i then
+      if windows[1].unfocus then
+        call("unfocus", 1, windows[1].unfocus, windows[1])
+      end
       local w = table.remove(windows, i)
       table.insert(windows, 1, w)
       dx, dy = s[3] - w.x, s[4] - w.y
       windows[1].drag = true
+      if windows[1].focus then
+        call("focus", 1, windows[1].focus, windows[1])
+      end
     end
   elseif s[1] == "drag" and windows[1].drag then
     windows[1].drag = 1
@@ -154,6 +161,8 @@ function ui.tick()
         running[windows[i].n] = nil
       end
       table.remove(windows, i)
+      if i == 1 and #windows > 0 and windows[1].focus then
+        call("focus", 1, windows[1].focus, windows[1]) end
       to = 0
     else
       if ui.buffered then
