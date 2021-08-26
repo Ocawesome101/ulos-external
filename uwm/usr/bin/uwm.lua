@@ -1,7 +1,5 @@
 -- basc window manager --
 
-local TERM_W, TERM_H = 65, 20
-
 local tty = require("tty")
 local fs = require("filesystem")
 local process = require("process")
@@ -17,68 +15,98 @@ end
 require("component").invoke(gpu.getScreen(), "setPrecise", false)
 
 local cfg = require("config").table:load("/etc/uwm.cfg") or {}
-TERM_W = cfg.width or TERM_W
-TERM_H = cfg.height or TERM_H
-require("config").table:save("/etc/uwm.cfg", {width = TERM_W, height = TERM_H})
+cfg.width = cfg.width or 65
+cfg.height = cfg.height or 20
+cfg.background_color=cfg.background_color or 0xAAAAAA
+cfg.bar_color = cfg.bar_color or 0x444444
+cfg.text_focused = cfg.text_focused or 0xFFFFFF
+cfg.text_unfocused = cfg.text_unfocused or 0xAAAAAA
+require("config").table:save("/etc/uwm.cfg", cfg)
 
 local w, h = gpu.getResolution()
-gpu.setBackground(0xAAAAAA)
+gpu.setBackground(cfg.background_color)
 gpu.fill(1, 1, w, h, " ")
 
 local windows = {}
 
 local function call(i, method, ...)
   if windows[i] and windows[i].app and windows[i].app[method] then
-    pcall(windows[i].app[method], windows[i], ...)
+    local ok, err = pcall(windows[i].app[method], windows[i], ...)
+    if not ok and err then
+      gpu.set(1, 2, err)
+    end
   end
 end
 
 local function unfocus_window()
-  windows[1].gpu.setForeground(0xAAAAAA)
-  windows[1].gpu.setBackground(0x444444)
+  windows[1].gpu.setForeground(cfg.text_unfocused)
+  windows[1].gpu.setBackground(cfg.bar_color)
   windows[1].gpu.set(1, windows[1].app.h+1, windows[1].app.__wintitle)
   gpu.bitblt(0, windows[1].x, windows[1].y, nil, nil, windows[1].buffer)
   call(1, "unfocus")
 end
 
+local wmt = {}
 local n = 0
 local function new_window(x, y, prog)
+  gpu.set(1, 2, "Working...")
   if windows[1] then
     unfocus_window()
   end
 
-  local ok, err = loadfile("/usr/share/apps/" .. prog .. ".lua")
-  if not ok then
-    gpu.set(1, 2, prog .. ": " .. err)
-    os.sleep(5)
-    return
+  local app
+  if type(prog) == "string" then
+    local ok, err = loadfile("/usr/share/apps/" .. prog .. ".lua")
+    if not ok then
+      gpu.set(1, 2, prog .. ": " .. err)
+      os.sleep(5)
+      return
+    end
+    ok, app = pcall(ok)
+    if not ok and app then
+      gpu.set(1, 2, prog .. ": " .. app)
+      os.sleep(5)
+      return
+    end
+  elseif type(prog) == "table" then
+    app = prog
   end
-  local ok, app = pcall(ok)
-  if not ok and app then
-    gpu.set(1, 2, prog .. ": " .. app)
+
+  if not app then
+    gpu.set(1, 2, "No app was returned")
     os.sleep(5)
     return
   end
 
-  app.w = app.w or TERM_W
-  app.h = app.h or TERM_H
+  app.wm = wmt
+  app.w = app.w or cfg.width
+  app.h = app.h or cfg.height
 
   local buffer, err = gpu.allocateBuffer(app.w, app.h + 1)
   if not buffer then return nil, err end
   local gpucontext = gpuproxy.buffer(gpu, buffer, nil, app.h)
-  gpucontext.setForeground(0xFFFFFF)
-  gpucontext.setBackground(0x444444)
+  gpucontext.setForeground(cfg.text_focused)
+  gpucontext.setBackground(cfg.bar_color)
   gpucontext.fill(1, app.h + 1, app.w, 1, " ")
   app.__wintitle = "Close | " .. (app.name or prog)
   gpucontext.set(1, app.h + 1, app.__wintitle)
   app.needs_repaint = true
   table.insert(windows, 1, {gpu = gpucontext, buffer = buffer, x = x or 1,
     y = y or 1, app = app})
+  call(1, "init")
+end
+
+wmt.new_window = new_window
+wmt.cfg = cfg
+
+function wmt.notify(text)
+  gpu.set(1, 2, text)
+  os.sleep(5)
 end
 
 local function menu(x, y)
-  gpu.setForeground(0xFFFFFF)
-  gpu.setBackground(0x444444)
+  gpu.setForeground(cfg.text_focused)
+  gpu.setBackground(cfg.bar_color)
   local files = fs.list("/usr/share/apps")
   gpu.fill(x, y, 16, #files + 1, " ")
   gpu.set(x, y, "**UWM Menu**")
@@ -98,8 +126,8 @@ end
 local function focus_window(id)
   unfocus_window()
   table.insert(windows, 1, table.remove(windows, id))
-  windows[1].gpu.setForeground(0xFFFFFF)
-  windows[1].gpu.setBackground(0x444444)
+  windows[1].gpu.setForeground(cfg.text_focused)
+  windows[1].gpu.setBackground(cfg.bar_color)
   windows[1].gpu.set(1, windows[1].app.h+1, windows[1].app.__wintitle)
   gpu.bitblt(0, windows[1].x, windows[1].y, nil, nil, windows[1].buffer)
   call(1, "focus")
@@ -108,7 +136,7 @@ end
 local rf_a = true
 local function refresh()
   if rf_a == true then
-    gpu.setBackground(0xAAAAAA)
+    gpu.setBackground(cfg.background_color)
     gpu.fill(1, 1, w, h, " ")
   end
   for i=(rf_a and #windows or 1), 1, -1 do
@@ -121,8 +149,8 @@ local function refresh()
     end
   end
   rf_a = false
-  gpu.setBackground(0)
-  gpu.setForeground(0xFFFFFF)
+  gpu.setBackground(cfg.bar_color)
+  gpu.setForeground(cfg.text_focused)
   gpu.set(1, 1, "Quit | ULOS Window Manager | Right-Click for menu")
 end
 
@@ -143,7 +171,7 @@ while true do
         goto skipclose
       end
       closed = true
-      gpu.setBackground(0xAAAAAA)
+      gpu.setBackground(cfg.background_color)
       gpu.fill(1, 1, w, h, " ")
       rf_a = true
       ::skipclose::
@@ -178,7 +206,7 @@ while true do
         end
       end
     elseif sig == "drag" and dragging then
-      gpu.setBackground(0xAAAAAA)
+      gpu.setBackground(cfg.background_color)
       gpu.fill(windows[1].x, windows[1].y, windows[1].app.w,
         windows[1].app.h + 1, " ")
       windows[1].x = x - xo
