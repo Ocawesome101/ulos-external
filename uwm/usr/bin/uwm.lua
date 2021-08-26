@@ -16,10 +16,10 @@ end
 
 require("component").invoke(gpu.getScreen(), "setPrecise", false)
 
-local cfg = require("config").table:load("/etc/wm.cfg") or {}
+local cfg = require("config").table:load("/etc/uwm.cfg") or {}
 TERM_W = cfg.width or TERM_W
 TERM_H = cfg.height or TERM_H
-require("config").table:save("/etc/wm.cfg", {width = TERM_W, height = TERM_H})
+require("config").table:save("/etc/uwm.cfg", {width = TERM_W, height = TERM_H})
 
 local w, h = gpu.getResolution()
 gpu.setBackground(0xAAAAAA)
@@ -39,6 +39,14 @@ local shell = assert(loadfile("/bin/lsh.lua"))
 
 local n = 0
 local function new_window(x, y, prog)
+  if windows[1] then
+    if windows[1].class == "tty" then
+      windows[1].stream:write("\27?15c")
+    elseif windows[1].class == "app" then
+      call(1, "unfocus")
+    end
+  end
+
   if prog == "terminal" then
     local buffer, err = gpu.allocateBuffer(TERM_W, TERM_H + 1)
     if not buffer then return nil, err end
@@ -58,13 +66,6 @@ local function new_window(x, y, prog)
       input = ttystream,
       output = ttystream
     }
-    if windows[1] then
-      if windows[1].class == "tty" then
-        windows[1].stream:write("\27?15c")
-      elseif windows[1].class == "app" then
-        call(1, "unfocus")
-      end
-    end
     table.insert(windows, 1, {stream = ttystream, buffer = buffer, x = x or 1,
       y = y or 1, pid = process.spawn(proc), class = "tty"})
   else
