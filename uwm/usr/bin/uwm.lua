@@ -1,8 +1,9 @@
--- basc window manager --
+-- basic window manager --
 
 local tty = require("tty")
 local fs = require("filesystem")
 local process = require("process")
+local computer = require("computer")
 local gpuproxy = require("gpuproxy")
 local gpu = tty.getgpu(io.stderr.tty)
 local screen = gpu.getScreen()
@@ -21,6 +22,7 @@ cfg.background_color=cfg.background_color or 0xAAAAAA
 cfg.bar_color = cfg.bar_color or 0x444444
 cfg.text_focused = cfg.text_focused or 0xFFFFFF
 cfg.text_unfocused = cfg.text_unfocused or 0xAAAAAA
+cfg.update_interval = cfg.update_interval or 0.05
 require("config").table:save("/etc/uwm.cfg", cfg)
 
 local w, h = gpu.getResolution()
@@ -49,7 +51,6 @@ end
 local wmt = {}
 local n = 0
 local function new_window(x, y, prog)
-  gpu.set(1, 2, "Working...")
   if windows[1] then
     unfocus_window()
   end
@@ -99,28 +100,49 @@ end
 wmt.new_window = new_window
 wmt.cfg = cfg
 
-function wmt.notify(text)
-  gpu.set(1, 2, text)
-  os.sleep(5)
+function wmt.notify(text, x, y)
+  wmt.menu((w // 2) - (#text // 2), h // 2 - 1, text, {"OK"})
 end
 
-local function menu(x, y)
+local function smenu(x, y, title, opts)
+  if not title then return end
+  x, y = x or 1, y or 2
+  local w = #title
+  opts = opts or {"OK", "Cancel"}
   gpu.setForeground(cfg.text_focused)
   gpu.setBackground(cfg.bar_color)
-  local files = fs.list("/usr/share/apps")
-  gpu.fill(x, y, 16, #files + 1, " ")
-  gpu.set(x, y, "**UWM Menu**")
-  for i=1,#files,1 do
-    files[i]=files[i]:gsub("%.lua$", "")
-    gpu.set(x,y+i,files[i])
+  gpu.fill(x, y, w, #opts + 1, " ")
+  gpu.set(x, y, title)
+  for i=1, #opts, 1 do
+    gpu.set(x, y + i, opts[i])
   end
   local sig, scr, _x, _y
   repeat
+    local s, S = coroutine.yield(0)
+  until (s == "touch" or s == "drop") and S == screen
+  repeat
     sig, scr, _x, _y = coroutine.yield(0)
   until sig == "drop" and scr == screen
-  if _x < x or _x > x+15 or _y < y or _y > y+#files then return
+  gpu.setBackground(cfg.background_color)
+  gpu.fill(x, y, w, #opts + 1, " ")
+  if _x < x or _x > x+15 or _y < y or _y > y+#opts then return
   elseif _y == y then -- do nothing
-  else new_window(x, y, files[_y - y]) end
+  else return opts[_y - y] end
+end
+
+wmt.menu = smenu
+
+local function menu(x, y)
+  local files = fs.list("/usr/share/apps")
+  for i=1,#files,1 do
+    files[i]=files[i]:gsub("%.lua$", "")
+  end
+  local sel = smenu(x, y, "**UWM App Menu**", files)
+  if sel then
+    gpu.setBackground(cfg.bar_color)
+    gpu.set(x, y, "**Please Wait.**")
+    new_window(x, y, sel)
+  end
 end
 
 local function focus_window(id)
@@ -133,22 +155,32 @@ local function focus_window(id)
   call(1, "focus")
 end
 
-local rf_a = true
+local last_ref = 0
 local function refresh()
-  if rf_a == true then
-    gpu.setBackground(cfg.background_color)
-    gpu.fill(1, 1, w, h, " ")
-  end
-  for i=(rf_a and #windows or 1), 1, -1 do
+  if computer.uptime() - last_ref < cfg.update_interval then return end
+  last_ref = computer.uptime()
+  for i=#windows, 1, -1 do
     if windows[i] then
       if windows[i].app.refresh and (windows[i].app.needs_repaint or
-          windows[i].app.active) and rf_a ~= 1 then
+          windows[i].app.active) then
         call(i, "refresh", windows[i].gpu)
       end
+    end
+  end
+  
+  for i=#windows, 1, -1 do
+    if windows[i] then
+      if windows[i].ox ~= windows[i].x or windows[i].oy ~= windows[i].y then
+        gpu.setBackground(cfg.background_color)
+        gpu.fill(windows[i].ox or windows[i].x, windows[i].oy or windows[i].y,
+          windows[i].app.w, windows[i].app.h + 1, " ")
+        windows[i].ox = windows[i].x
+        windows[i].oy = windows[i].y
+      end
+
       gpu.bitblt(0, windows[i].x, windows[i].y, nil, nil, windows[i].buffer)
     end
   end
-  rf_a = false
   gpu.setBackground(cfg.bar_color)
   gpu.setForeground(cfg.text_focused)
   gpu.set(1, 1, "Quit | ULOS Window Manager | Right-Click for menu")
@@ -157,6 +189,10 @@ end
 io.write("\27?15c\27?1;2;3s")
 io.flush()
 local dragging, mk, xo, yo = false, false, 0, 0
+local keyboards = {}
+for i, addr in ipairs(require("component").invoke(screen, "getKeyboards")) do
+  keyboards[addr] = true
+end
 while true do
   refresh()
   local sig, scr, x, y, button = coroutine.yield(0)
@@ -173,14 +209,17 @@ while true do
       closed = true
       gpu.setBackground(cfg.background_color)
       gpu.fill(1, 1, w, h, " ")
-      rf_a = true
       ::skipclose::
     end
   end
-  if scr == screen then
+  if keyboards[scr] or scr == screen then
     if sig == "touch" then
       if y == 1 and x < 6 then
-        break
+        local opt = smenu((w // 2) - 8, h // 2 - 1,
+          "**Really Exit?**", {"Yes", "No"})
+        if opt == "Yes" then
+          break
+        end
       elseif button == 1 then
         if not mk then mk = true menu(x, y) end
       else
@@ -189,7 +228,9 @@ while true do
              y == windows[i].y + windows[i].app.h then
             call(i, "close")
             gpu.freeBuffer(windows[i].buffer)
-            rf_a = true
+            gpu.setBackground(cfg.background_color)
+            gpu.fill(windows[i].x, windows[i].y, windows[i].app.w,
+              windows[i].app.h + 1, " ")
             table.remove(windows, i)
             if i == 1 and windows[1] then
               focus_window(1)
@@ -198,7 +239,6 @@ while true do
           elseif x >= windows[i].x and x < windows[i].x + windows[i].app.w and
               y >= windows[i].y and y <= windows[i].y + windows[i].app.h  then
             focus_window(i)
-            rf_a = true
             dragging = true
             xo, yo = x - windows[i].x, y - windows[i].y
             break
@@ -206,12 +246,8 @@ while true do
         end
       end
     elseif sig == "drag" and dragging then
-      gpu.setBackground(cfg.background_color)
-      gpu.fill(windows[1].x, windows[1].y, windows[1].app.w,
-        windows[1].app.h + 1, " ")
       windows[1].x = x - xo
       windows[1].y = y - yo
-      rf_a = 1
       dragging = 1
     elseif sig == "drop" then
       if dragging ~= 1 and windows[1] then
@@ -219,7 +255,6 @@ while true do
         windows[1].app.needs_repaint = true
       end
       dragging = false
-      rf_a = true
       xo, yo = 0, 0
       mk = false
     elseif sig == "key_down" then
