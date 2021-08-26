@@ -33,69 +33,47 @@ local function call(i, method, ...)
   end
 end
 
--- use the same shell function for all terminals
--- this reduces memory usage
-local shell = assert(loadfile("/bin/lsh.lua"))
+local function unfocus_window()
+  windows[1].gpu.setForeground(0xAAAAAA)
+  windows[1].gpu.setBackground(0x444444)
+  windows[1].gpu.set(1, windows[1].app.h+1, windows[1].app.__wintitle)
+  gpu.bitblt(0, windows[1].x, windows[1].y, nil, nil, windows[1].buffer)
+  call(1, "unfocus")
+end
 
 local n = 0
 local function new_window(x, y, prog)
   if windows[1] then
-    if windows[1].class == "tty" then
-      windows[1].stream:write("\27?15c")
-    elseif windows[1].class == "app" then
-      call(1, "unfocus")
-    end
+    unfocus_window()
   end
 
-  if prog == "terminal" then
-    local buffer, err = gpu.allocateBuffer(TERM_W, TERM_H + 1)
-    if not buffer then return nil, err end
-    local gpucontext = gpuproxy.buffer(gpu, buffer, nil, TERM_H)
-    gpucontext.setForeground(0xFFFFFF)
-    gpucontext.setBackground(0x444444)
-    gpucontext.fill(1, TERM_H + 1, TERM_W, 1, " ")
-    gpucontext.set(1, TERM_H + 1, "Close | Terminal " .. n)
-    n = n + 1
-    local ttystream = tty.create(gpucontext)
-    local proc = {
-      func = shell,
-      name = "lsh",
-      stdin = ttystream,
-      stdout = ttystream,
-      stderr = ttystream,
-      input = ttystream,
-      output = ttystream
-    }
-    table.insert(windows, 1, {stream = ttystream, buffer = buffer, x = x or 1,
-      y = y or 1, pid = process.spawn(proc), class = "tty"})
-  else
-    local ok, err = loadfile("/usr/share/apps/" .. prog .. ".lua")
-    if not ok then
-      gpu.set(1, 2, prog .. ": " .. err)
-      os.sleep(5)
-      return
-    end
-    local ok, app = pcall(ok)
-    if not ok and app then
-      gpu.set(1, 2, prog .. ": " .. app)
-      os.sleep(5)
-      return
-    end
-
-    app.w = app.w or TERM_W
-    app.h = app.h or TERM_H
-
-    local buffer, err = gpu.allocateBuffer(app.w, app.h + 1)
-    if not buffer then return nil, err end
-    local gpucontext = gpuproxy.buffer(gpu, buffer, nil, app.h)
-    gpucontext.setForeground(0xFFFFFF)
-    gpucontext.setBackground(0x444444)
-    gpucontext.fill(1, app.h + 1, app.w, 1, " ")
-    gpucontext.set(1, app.h + 1, "Close | " .. prog)
-    app.needs_repaint = true
-    table.insert(windows, 1, {gpu = gpucontext, buffer = buffer, x = x or 1,
-      y = y or 1, class = "app", app = app})
+  local ok, err = loadfile("/usr/share/apps/" .. prog .. ".lua")
+  if not ok then
+    gpu.set(1, 2, prog .. ": " .. err)
+    os.sleep(5)
+    return
   end
+  local ok, app = pcall(ok)
+  if not ok and app then
+    gpu.set(1, 2, prog .. ": " .. app)
+    os.sleep(5)
+    return
+  end
+
+  app.w = app.w or TERM_W
+  app.h = app.h or TERM_H
+
+  local buffer, err = gpu.allocateBuffer(app.w, app.h + 1)
+  if not buffer then return nil, err end
+  local gpucontext = gpuproxy.buffer(gpu, buffer, nil, app.h)
+  gpucontext.setForeground(0xFFFFFF)
+  gpucontext.setBackground(0x444444)
+  gpucontext.fill(1, app.h + 1, app.w, 1, " ")
+  app.__wintitle = "Close | " .. (app.name or prog)
+  gpucontext.set(1, app.h + 1, app.__wintitle)
+  app.needs_repaint = true
+  table.insert(windows, 1, {gpu = gpucontext, buffer = buffer, x = x or 1,
+    y = y or 1, app = app})
 end
 
 local function menu(x, y)
@@ -103,7 +81,7 @@ local function menu(x, y)
   gpu.setBackground(0x444444)
   local files = fs.list("/usr/share/apps")
   gpu.fill(x, y, 16, #files + 1, " ")
-  gpu.set(x, y, "terminal")
+  gpu.set(x, y, "**UWM Menu**")
   for i=1,#files,1 do
     files[i]=files[i]:gsub("%.lua$", "")
     gpu.set(x,y+i,files[i])
@@ -113,22 +91,18 @@ local function menu(x, y)
     sig, scr, _x, _y = coroutine.yield(0)
   until sig == "drop" and scr == screen
   if _x < x or _x > x+15 or _y < y or _y > y+#files then return
-  elseif _y == y then new_window(x, y, "terminal")
+  elseif _y == y then -- do nothing
   else new_window(x, y, files[_y - y]) end
 end
 
 local function focus_window(id)
-  if windows[1].class == "tty" then
-    windows[1].stream:write("\27?15c")
-  elseif windows[1].class == "app" then
-    call(1, "unfocus")
-  end
+  unfocus_window()
   table.insert(windows, 1, table.remove(windows, id))
-  if windows[1].class == "tty" then
-    windows[1].stream:write("\27?5c")
-  elseif windows[1].class == "app" then
-    call(1, "focus")
-  end
+  windows[1].gpu.setForeground(0xFFFFFF)
+  windows[1].gpu.setBackground(0x444444)
+  windows[1].gpu.set(1, windows[1].app.h+1, windows[1].app.__wintitle)
+  gpu.bitblt(0, windows[1].x, windows[1].y, nil, nil, windows[1].buffer)
+  call(1, "focus")
 end
 
 local rf_a = true
@@ -139,8 +113,8 @@ local function refresh()
   end
   for i=(rf_a and #windows or 1), 1, -1 do
     if windows[i] then
-      if windows[i].app and windows[i].app.refresh and
-          windows[i].app.needs_repaint and rf_a ~= 1 then
+      if windows[i].app.refresh and (windows[i].app.needs_repaint or
+          windows[i].app.active) and rf_a ~= 1 then
         call(i, "refresh", windows[i].gpu)
       end
       gpu.bitblt(0, windows[i].x, windows[i].y, nil, nil, windows[i].buffer)
@@ -160,16 +134,7 @@ while true do
   local sig, scr, x, y, button = coroutine.yield(0)
   for i=1, #windows, 1 do
     if windows[i] then
-      if windows[i].class == "app" then
-        windows[i].app.needs_repaint = windows[i].app.active
-      end
-      if windows[i].class == "tty" and not process.info(windows[i].pid) then
-        local win = table.remove(windows, i)
-        if #windows > 0 then focus_window(1) end
-        tty.delete(win.stream.tty)
-        gpu.freeBuffer(win.buffer)
-        win.stream:close()
-      elseif windows[i].class == "app" and windows[i].closeme then
+      if windows[i].closeme then
         call(i, "close")
         local win = table.remove(windows, i)
         if #windows > 0 then focus_window(1) end
@@ -193,14 +158,8 @@ while true do
       else
         for i=1, #windows, 1 do
           if x >= windows[i].x and x <= windows[i].x + 6 and
-             y == windows[i].y + (windows[i].app and windows[i].app.h or TERM_H)
-              then
-            if windows[i].class == "tty" then
-              process.kill(windows[i].pid, process.signals.hangup)
-              tty.delete(windows[i].stream.tty)
-            elseif windows[i].class == "app" then
-              call(i, "close")
-            end
+             y == windows[i].y + windows[i].app.h then
+            call(i, "close")
             gpu.freeBuffer(windows[i].buffer)
             rf_a = true
             table.remove(windows, i)
@@ -208,10 +167,8 @@ while true do
               focus_window(1)
             end
             break
-          elseif x >= windows[i].x and x < windows[i].x + (windows[i].app and
-              windows[i].app.w or TERM_W) and
-                y >= windows[i].y and y <= windows[i].y + (windows[i].app and
-              windows[i].app.h or TERM_H) then
+          elseif x >= windows[i].x and x < windows[i].x + windows[i].app.w and
+              y >= windows[i].y and y <= windows[i].y + windows[i].app.h  then
             focus_window(i)
             rf_a = true
             dragging = true
@@ -222,7 +179,8 @@ while true do
       end
     elseif sig == "drag" and dragging then
       gpu.setBackground(0xAAAAAA)
-      gpu.fill(windows[1].x, windows[1].y, TERM_W, TERM_H + 1, " ")
+      gpu.fill(windows[1].x, windows[1].y, windows[1].app.w,
+        windows[1].app.h + 1, " ")
       windows[1].x = x - xo
       windows[1].y = y - yo
       rf_a = 1
@@ -230,25 +188,24 @@ while true do
     elseif sig == "drop" then
       if dragging ~= 1 and windows[1] then
         call(1, "click", x - windows[1].x + 1, y - windows[1].y + 1)
+        windows[1].app.needs_repaint = true
       end
       dragging = false
       rf_a = true
       xo, yo = 0, 0
       mk = false
     elseif sig == "key_down" then
-      call(1, "key", x, y)
+      if windows[1] then
+        call(1, "key", x, y)
+        windows[1].app.needs_repaint = true
+      end
     end
   end
 end
 
 -- clean up unused resources
 for i=1, #windows, 1 do
-  if windows[i].class == "tty" then
-    process.kill(windows[i].pid, process.signals.hangup)
-    tty.delete(windows[i].stream.tty)
-  else
-    call(i, "close", "UI_CLOSING")
-  end
+  call(i, "close", "UI_CLOSING")
   gpu.freeBuffer(windows[i].buffer)
 end
 

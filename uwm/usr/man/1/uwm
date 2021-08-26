@@ -5,7 +5,7 @@
   ${uwm}
 
 *{DESCRIPTION}
-  ${uwm} is a basic window manager.  It provides facilities for the creation and deletion of windowed terminals and applications;  all else is left to the processes attached to the terminals.
+  ${uwm} is a basic window manager.  It provides facilities for the creation and deletion of windowed applications;  all else is left to the application itself.
 
 *{USAGE}
   When ${uwm} starts, it displays a solid light-gray background with the text
@@ -14,23 +14,21 @@
 
   in the top left corner.
 
-  Right-clicking anywhere on the screen will create a menu.  Hold down the right-click button and drag your cursor over the desired option.  All files under #{/usr/share/apps} are listed as options, as well as a constant "terminal" option.  Release the right-click button to select an option;  simply right-clicking will create a terminal window, as before.
+  Right-clicking anywhere on the screen will create a menu.  Hold down the right-click button and drag your cursor over the desired option.  All files under #{/usr/share/apps} are listed as options.  Release the right-click button to select an option.
 
-  Selecting the "terminal" option will create a new terminal window and attach a *{lsh}(*{1}) process to it.  Selecting any other option will load the corresponding application file and attach its returned UI data to the window tree.
+  Selecting any application will load the corresponding application file and attach its returned UI data to the window tree.
 
   Each window is by default 65x20 in size and uses a corresponding amount of GPU memory.  This means that, on a Tier 3 GPU with default configuration, there may be at most 18 windows open at any one time.  On a Tier 2 GPU, there may only be 3 windows.
 
-  Clicking *{Quit} will exit ${uwm}, freeing all allocated window-buffers, closing terminals, and killing the shells assigned to those terminals.
+  Clicking *{Quit} will exit ${uwm}, freeing all allocated window-buffers and calling blue{:close} on all windows.
 
   ${uwm} does not support nested instances.
-
-  ${uwm} requires at least 512KB of RAM.
 
 *{CONFIGURATION}
   ${uwm} is configured through #{/etc/uwm.cfg}.
 
 *{COPYRIGHT}
-  ULOS Terminal Manager copyright (c) 2021 Ocawesome101 under the DSLv2.
+  ULOS Window Manager copyright (c) 2021 Ocawesome101 under the DSLv2.
 
 *{REPORTING BUGS}
   Please report bugs at @{https://github.com/ocawesome101/oc-ulos}.
