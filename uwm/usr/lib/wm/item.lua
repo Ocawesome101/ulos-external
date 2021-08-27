@@ -4,7 +4,14 @@ local _item = {}
 
 function _item:click(x, y)
   for i, item in ipairs(self.items) do
-    if item.click then item:click(x, y) end
+    local iw = item.w or (type(item.text) == "table" and #item.text[1])
+      or #item.text
+    local ih = item.h or (type(item.text) == "table" and #item.text) or 1
+    if x >= item.x and x < item.x + iw and
+       y >= item.y and y < item.y + ih and item.click then
+      item:click(x, y)
+      break
+    end
   end
 end
 

@@ -26,8 +26,9 @@ end
 
 if verb == "list" then
   local r = sv.list()
+  print("ACTIVE  NAME")
   for k,v in pairs(r) do
-    print(k)
+    print(string.format("%6s  %s", tostring(v), k))
   end
 else
   local ok, err = sv[verb](table.unpack(args, 2, #args))

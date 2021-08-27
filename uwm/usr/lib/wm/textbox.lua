@@ -27,7 +27,8 @@ function _tb:refresh()
   self.win.gpu.setBackground(self.bg)
   self.win.gpu.fill(self.x, self.y, self.w, 1, " ")
   self.win.gpu.set(self.x, self.y, 
-    (self.text .. (self.focused and"|"or""))
+    ((self.password and self.text:gsub(".", "*") or self.text)
+      .. (self.focused and"|"or""))
       :sub(-math.min(#self.text + 2, self.w)))
 end
 

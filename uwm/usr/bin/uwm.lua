@@ -59,14 +59,12 @@ local function new_window(x, y, prog)
   if type(prog) == "string" then
     local ok, err = loadfile("/usr/share/apps/" .. prog .. ".lua")
     if not ok then
-      gpu.set(1, 2, prog .. ": " .. err)
-      os.sleep(5)
+      wmt.notify(prog .. ": " .. err)
       return
     end
     ok, app = pcall(ok)
     if not ok and app then
-      gpu.set(1, 2, prog .. ": " .. app)
-      os.sleep(5)
+      wmt.notify(prog .. ": " .. app)
       return
     end
   elseif type(prog) == "table" then
@@ -74,8 +72,7 @@ local function new_window(x, y, prog)
   end
 
   if not app then
-    gpu.set(1, 2, "No app was returned")
-    os.sleep(5)
+    wmt.notify("No app was returned")
     return
   end
 
@@ -84,7 +81,7 @@ local function new_window(x, y, prog)
   app.h = app.h or cfg.height
 
   local buffer, err = gpu.allocateBuffer(app.w, app.h + 1)
-  if not buffer then return nil, err end
+  if not buffer then wmt.notify("/!\\ " .. err) return nil, err end
   local gpucontext = gpuproxy.buffer(gpu, buffer, nil, app.h)
   gpucontext.setForeground(cfg.text_focused)
   gpucontext.setBackground(cfg.bar_color)
@@ -94,7 +91,7 @@ local function new_window(x, y, prog)
   app.needs_repaint = true
   table.insert(windows, 1, {gpu = gpucontext, buffer = buffer, x = x or 1,
     y = y or 1, app = app})
-  call(1, "init")
+  pcall(app.init, windows[1])
 end
 
 wmt.new_window = new_window
@@ -188,7 +185,7 @@ end
 
 io.write("\27?15c\27?1;2;3s")
 io.flush()
-local dragging, mk, xo, yo = false, false, 0, 0
+local dragging, xo, yo = false, 0, 0
 local keyboards = {}
 for i, addr in ipairs(require("component").invoke(screen, "getKeyboards")) do
   keyboards[addr] = true
@@ -221,7 +218,7 @@ while true do
           break
         end
       elseif button == 1 then
-        if not mk then mk = true menu(x, y) end
+        menu(x, y)
       else
         for i=1, #windows, 1 do
           if x >= windows[i].x and x <= windows[i].x + 6 and
@@ -240,7 +237,7 @@ while true do
               y >= windows[i].y and y <= windows[i].y + windows[i].app.h  then
             focus_window(i)
             dragging = true
-            xo, yo = x - windows[i].x, y - windows[i].y
+            xo, yo = x - windows[1].x, y - windows[1].y
             break
           end
         end
@@ -256,7 +253,6 @@ while true do
       end
       dragging = false
       xo, yo = 0, 0
-      mk = false
     elseif sig == "key_down" then
       if windows[1] then
         call(1, "key", x, y)
