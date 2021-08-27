@@ -3,6 +3,7 @@
 local sv = require("sv")
 local item = require("wm.item")
 local tbox = require("wm.textbox")
+local fs = require("filesystem")
 
 local app = {
   w = 40,
@@ -47,23 +48,25 @@ function app:init()
   }
 
   local i = 0
-  for service, running in pairs(services) do
+  for service, state in pairs(services) do
     self.pages[1]:add {
-      x = 3, y = 4 + i, text = service .. (running and "*" or ""),
-      foreground = self.app.wm.cfg.text_focused, running = running,
+      x = 3, y = 4 + i, text = service .. (state.isEnabled and "*" or ""),
+      foreground = self.app.wm.cfg.text_focused, enabled = state.isEnabled,
       background = 0, click = function(b)
         local opts = {"Enable", "Cancel"}
-        if b.running then opts[1] = "Disable" end
+        if b.enabled then opts[1] = "Disable" end
         local ed = self.app.wm.menu(self.x, self.y, "**Enable/Disable**", opts)
         if ed == "Enable" then
           if b.text:sub(-1) ~= "*" then b.text = b.text .. "*" end
           local ok, err = sv.enable(b.text:sub(1, -2))
+          b.enabled = true
           if not ok then
             self.app.wm.notify(err)
           end
         elseif ed == "Disable" then
           if b.text:sub(-1) == "*" then b.text = b.text:sub(1, -2) end
           local ok, err = sv.disable(b.text)
+          b.enabled = false
           if not ok then
             self.app.wm.notify(err)
           end
@@ -79,11 +82,65 @@ function app:init()
     x = 1, y = 2, text = "Name", foreground = self.app.wm.cfg.text_focused,
     background = self.app.wm.cfg.bar_color
   }
-
   self.pages[2]:add(tbox {
     x = 6, y = 2, w = 10, foreground = self.app.wm.cfg.bar_color,
-    background = self.app.wm.cfg.text_focused, window = self, text = "TEST"
+    background = self.app.wm.cfg.text_focused, window = self, text = "",
+    submit = function(_,text) self.pages[2].sname = text end
   })
+
+  self.pages[2]:add {
+    x = 17, y = 2, text = "File", foreground = self.app.wm.cfg.text_focused,
+    background = self.app.wm.cfg.bar_color
+  }
+  self.pages[2]:add(tbox {
+    x = 22, y = 2, w = 10, foreground = self.app.wm.cfg.bar_color,
+    background = self.app.wm.cfg.text_focused, window = self, text = "",
+    submit = function(_,text)
+      if not fs.stat(text) then
+        self.app.wm.notify("That file does not exist.")
+      else
+        self.pages[2].sfile = text
+      end
+    end
+  })
+
+  self.pages[2]:add {
+    x = 1, y = 3, text = "script", foreground = self.app.wm.cfg.text_unfocused,
+    background = self.app.wm.cfg.bar_color, click = function(b)
+      self.pages[2].stype = "script"
+      b.foreground = self.app.wm.cfg.text_focused
+      self.pages[2].items[#self.pages[2].items - 1].foreground =
+        self.app.wm.cfg.text_unfocused
+    end
+  }
+
+  self.pages[2]:add {
+    x = 8, y = 3, text = "service", foreground = self.app.wm.cfg.text_unfocused,
+    background = self.app.wm.cfg.bar_color, click = function(b)
+      self.pages[2].stype = "service"
+      b.foreground = self.app.wm.cfg.text_focused
+      self.pages[2].items[#self.pages[2].items - 2].foreground =
+        self.app.wm.cfg.text_unfocused
+    end
+  }
+
+  self.pages[2]:add {
+    x = 17, y = 3, text = "Add", foreground = self.app.wm.cfg.text_focused,
+    background = self.app.wm.cfg.bar_color, click = function(b)
+      local pg = self.pages[2]
+      if not (pg.stype and pg.sname and
+          pg.sfile) then
+        self.app.wm.notify("Missing name, file, or type")
+      else
+        local ok, err = sv.add(pg.stype, pg.sname, pg.sfile)
+        if not ok then
+          self.app.wm.notify(err)
+        else
+          services = sv.list()
+        end
+      end
+    end
+  }
 end
 
 function app:click(...)

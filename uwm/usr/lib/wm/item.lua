@@ -4,13 +4,12 @@ local _item = {}
 
 function _item:click(x, y)
   for i, item in ipairs(self.items) do
-    local iw = item.w or (type(item.text) == "table" and #item.text[1])
-      or #item.text
-    local ih = item.h or (type(item.text) == "table" and #item.text) or 1
+    local iw = item.w or (item.text and #item.text) or 1
+    local ih = item.h or 1
     if x >= item.x and x < item.x + iw and
        y >= item.y and y < item.y + ih and item.click then
       item:click(x, y)
-      break
+      --break
     end
   end
 end
@@ -42,9 +41,9 @@ end
 function _item:add(args)
   args.x = args.x or 1
   args.y = args.y or 1
-  args.w = args.w or 1
+  args.w = args.w or (args.text and #args.text) or 1
   args.h = args.h or 1
-  args.text = args.text or {}
+  args.text = args.text or ""
   table.insert(self.items, args)
 end
 
