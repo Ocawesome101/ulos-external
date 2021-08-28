@@ -2,6 +2,7 @@
 
 local tty = require("tty")
 local fs = require("filesystem")
+local config = require("config")
 local process = require("process")
 local computer = require("computer")
 local gpuproxy = require("gpuproxy")
@@ -15,7 +16,8 @@ end
 
 require("component").invoke(gpu.getScreen(), "setPrecise", false)
 
-local cfg = require("config").table:load("/etc/uwm.cfg") or {}
+local cfg = config.table:load(os.getenv("HOME") .. "/.config/uwm.cfg") or
+            config.table:load("/etc/uwm.cfg") or {}
 cfg.width = cfg.width or 65
 cfg.height = cfg.height or 20
 cfg.background_color=cfg.background_color or 0xAAAAAA

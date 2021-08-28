@@ -3,13 +3,18 @@
 local tty = require("tty")
 local process = require("process")
 
+local shell = (require("config").table:load(os.getenv("HOME").."/.uwmterm.cfg")
+  or require("config").table:load("/etc/uwmterm.cfg")
+  or {shell = "/bin/lsh"}).shell
+
 local app = {
   name = "Terminal"
 }
 
 function app:refresh(gpu)
   if not self.app.pid then
-    local shell, err = loadfile((os.getenv("SHELL") or "/bin/lsh") .. ".lua")
+    local shell, err = loadfile((shell or os.getenv("SHELL") or "/bin/lsh")
+      .. ".lua")
     if not shell then
       self.app.refresh = function(s, g)
         g.set(1, 1, "shell load: " .. err)
@@ -17,7 +22,7 @@ function app:refresh(gpu)
     end
     self.app.stream = tty.create(gpu)
     self.app.pid = process.spawn {
-      name = "lsh [terminal]",
+      name = "[terminal]",
       func = shell,
       stdin  = self.app.stream,
       stdout = self.app.stream,
