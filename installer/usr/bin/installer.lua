@@ -220,9 +220,15 @@ local function install_offline(wrapped)
 
   wrapped:write("Removing installer-specific configuration\n")
   
-  wdofile(wrapped, "/bin/cp.lua", "-rfv", "/usr/share/installer/rf.cfg",
+  if package.loaded.sv then
+    wdofile(wrapped, "/bin/cp.lua", "-rfv", "/usr/share/installer/rf.cfg",
     "/mnt/etc/rf.cfg")
-  wdofile(wrapped, "/bin/rm.lua", "-rfv", "/mnt/etc/rf/startinst.lua")
+    wdofile(wrapped, "/bin/rm.lua", "-rfv", "/mnt/etc/rf/startinst.lua")
+  elseif package.loaded.usysd then
+    local h = io.open("/mnt/etc/usysd/autostart", "w")
+    h:write("login@tty0\n")
+    h:close()
+  end
 
   return true
 end

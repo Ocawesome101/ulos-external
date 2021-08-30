@@ -19,4 +19,4 @@ do
   end
 end
 
-io.write("\n\n  \27[97mWelcome to \27[96m" .. usd._RUNNING_ON .. "\27[97m!\27[37m\n\n")
+io.write("\n  \27[97mWelcome to \27[96m" .. usd._RUNNING_ON .. "\27[97m!\27[37m\n\n")

@@ -2,7 +2,7 @@
   ls - list files
 
 *{SYNOPSIS}
-  ${ls} [*{options] *{FILE ...}
+  ${ls} [*{options}] *{FILE ...}
 
 *{DESCRIPTION}
   For each *{FILE}, ${ls} lists all files under that *{FILE} if it is a directory, and *{-d} is not specified, or will list information about that file.  Listed files are sorted alphabetically.  If no *{FILE} is specified, ${ls} will list the current directory.
