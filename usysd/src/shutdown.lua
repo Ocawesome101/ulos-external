@@ -1,6 +1,7 @@
 -- wrap computer.shutdown --
 
 do
+  local network = require("network")
   local computer = require("computer")
   local shutdown = computer.shutdown
 
@@ -10,6 +11,15 @@ do
       usd.api.stop(name)
     end
     usd.log(usd.statii.ok, "stopped services")
+
+    if network.hostname() ~= "localhost" then
+      usd.log(usd.statii.wait, "saving hostname")
+      local handle = io.open("/etc/hostname", "w")
+      if handle then
+        handle:write(network.hostname())
+        handle:close()
+      end
+    end
 
     os.sleep(1)
 
