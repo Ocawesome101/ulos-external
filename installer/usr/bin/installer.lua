@@ -188,7 +188,7 @@ local function install_online(wrapped)
   local pklist = {
     "cldr",
     "cynosure",
-    "refinement",
+    "usysd",
     "coreutils",
     "corelibs",
     "upm"

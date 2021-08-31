@@ -1,5 +1,5 @@
 Welcome to ULOS!
 
-Manage services with the `sv` utility. Manual pages are available in the `manpages` package.  Most utilities are in /bin and /sbin.
+Manual pages are available in the `manpages` package.  Most utilities are in /bin and /sbin.  The recommended editor is `tle`.
 
 You can change this message by editing /etc/motd.txt.

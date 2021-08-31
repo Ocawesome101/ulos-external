@@ -1,2 +1,4 @@
 NAME="ULOS"
+ANSI_COLOR="38;2;102;182;255"
 PRETTY_NAME="The Unix-Like Operating System"
+BUG_REPORT_URL="https://github.com/ocawesome101/oc-ulos/issues"
