@@ -19,6 +19,7 @@ do
         handle:write(network.hostname())
         handle:close()
       end
+      usd.log("\27[A\27[G\27[2K", usd.statii.ok, "saved hostname")
     end
 
     os.sleep(1)

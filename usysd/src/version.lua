@@ -1,8 +1,8 @@
 --  usysd versioning stuff --
 
-usd._VERSION_MAJOR = 0
+usd._VERSION_MAJOR = 1
 usd._VERSION_MINOR = 0
-usd._VERSION_PATCH = 0
+usd._VERSION_PATCH = 3
 usd._RUNNING_ON = "unknown"
 
 io.write(string.format("USysD version %d.%d.%d\n", usd._VERSION_MAJOR, usd._VERSION_MINOR,

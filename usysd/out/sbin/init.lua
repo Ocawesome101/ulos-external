@@ -10,9 +10,9 @@ local usd = {}
 
 --  usysd versioning stuff --
 
-usd._VERSION_MAJOR = 0
+usd._VERSION_MAJOR = 1
 usd._VERSION_MINOR = 0
-usd._VERSION_PATCH = 0
+usd._VERSION_PATCH = 3
 usd._RUNNING_ON = "unknown"
 
 io.write(string.format("USysD version %d.%d.%d\n", usd._VERSION_MAJOR, usd._VERSION_MINOR,
@@ -228,6 +228,7 @@ end
 -- wrap computer.shutdown --
 
 do
+  local network = require("network")
   local computer = require("computer")
   local shutdown = computer.shutdown
 
@@ -237,6 +238,15 @@ do
       usd.api.stop(name)
     end
     usd.log(usd.statii.ok, "stopped services")
+
+    if network.hostname() ~= "localhost" then
+      usd.log(usd.statii.wait, "saving hostname")
+      local handle = io.open("/etc/hostname", "w")
+      if handle then
+        handle:write(network.hostname())
+        handle:close()
+      end
+    end
 
     os.sleep(1)
 
