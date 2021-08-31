@@ -1,3 +1,0 @@
-[usysd-service]
-file = /bin/login.lua
-user = root
