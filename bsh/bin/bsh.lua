@@ -4,7 +4,41 @@ local pipe = require("pipe")
 local process = require("process")
 local readline = require("readline")
 
+os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
+os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W>")
+os.setenv("SHLVL", tostring(math.floor((os.getenv("SHLVL") or "0" + 1))))
+
+local logError = function(err)
+  if not err then return end
+  io.stderr:write(err .. "\n")
+end
+
+local function resolveCommand(name)
+  return nil, "command not found"
+end
+
+local function executeCommand(cstr, nowait)
+  local file, err = resolveCommand(cstr.command[1])
+  if not file then logError("sh: " .. cstr.command[1] .. ": " .. err) return 1, err end
+  local ok, err = loadfile(file)
+  if not ok then logError(cstr.command[1] .. ": " .. err) return 1, err end
+  local pid = process.spawn {
+    func = function()return ok(table.unpack(cstr.command, 2)) end,
+    name = cstr.command[1],
+    stdin = cstr.input,
+    input = cstr.input,
+    stdout = cstr.output,
+    output = cstr.output,
+    stderr = cstr.err,
+    env = cstr.env
+  }
+  if not nowait then
+    return process.await(pid)
+  end
+end
+
 local special = "['\" %[%(%$&#|%){}\n;]"
+
 local function tokenize(text)
   text = text:gsub("$([a-zA-Z0-9_]+)", function(x)return os.getenv(x)or""end)
   local tokens = {}
@@ -78,7 +112,13 @@ eval = function(tokens, captureOutput)
         local seq = tokens:get_balanced("(",")")
         seq[#seq] = nil
         seq = eval(mkrdr(seq), true) or {}
-        simplified[#simplified]=simplified[#simplified]..table.concat(seq)
+        for i=1, #seq, 1 do
+          if #simplified[#simplified]==0 then
+            simplified[#simplified]=seq[i]
+          else
+            simplified[#simplified+1]=seq[i]
+          end
+        end
       elseif tokens:peek() == "{" then
         local seq = tokens:get_balanced("{","}")
         seq[#seq]=nil
@@ -106,21 +146,91 @@ eval = function(tokens, captureOutput)
   end
   -- second pass: set up command structure
   local struct = {{command = {}, input = io.stdin,
-    output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr}}
+    output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}}
   local i = 0
   while i < #simplified do
     i = i + 1
     if simplified[i] == ";" then
       if #struct[#struct].command == 0 then
         return nil, "syntax error near unexpected token `;'"
-      else
-        struct[#struct+1] = {{command = {}, }}
+      elseif i ~= #simplified then
+        struct[#struct+1] = ";"
+        struct[#struct+1] = {command = {}, input = io.stdin,
+          output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
       end
+    elseif simplified[i] == "|" then
+      if type(struct[#struct]) == "string" or #struct[#struct].command == 0 then
+        return nil, "syntax error near unexpected token `|'"
+      else
+        local _pipe = pipe.create()
+        struct[#struct].output = pipe
+        struct[#struct+1] = {command = {}, input = pipe,
+          output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
+      end
+    elseif simplified[i] == "&" then
+      if type(struct[#struct]) == "string" or #struct[#struct].command == 0 then
+        return nil, "syntax error near unexpected token `&'"
+      elseif simplified[i+1] == "&" then
+        i = i + 1
+        struct[#struct+1] = "&&"
+        struct[#struct+1] = {command = {}, input = io.stdin,
+          output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
+      else
+        struct[#struct+1] = "&"
+      end
+    else
+      table.insert(struct[#struct].command, simplified[i])
     end
+  end
+
+  local srdr = mkrdr(struct)
+  local lastExitStatus, lastExitReason, lastSeparator = 0, "", ";"
+  for token in srdr.pop, srdr do
+    if type(token) == "table" then
+      if lastSeparator == "&&" then
+        if lastExitStatus == 0 then
+          local exitStatus, exitReason = executeCommand(token)
+          lastExitStatus = exitStatus
+          if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
+              and exitReason and #exitReason > 0 then
+            logError(err)
+          end
+        end
+      elseif lastSeparator == "&" then
+        executeCommand(token, true)
+      elseif lastSeparator == "|" then
+        if lastExitStatus == 0 then
+          local exitStatus, exitReason = executeCommand(token)
+          lastExitStatus = exitStatus
+          if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
+              and exitReason and #exitReason > 0 then
+            logError(err)
+          end
+        end
+      elseif lastSeparator == ";" then
+        lastExitStatus = 0
+        local exitStatus, exitReason = executeCommand(token)
+        lastExitStatus = exitStatus
+        if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
+            and exitReason and #exitReason > 0 then
+          logError(err)
+        end
+      end
+    elseif type(token) == "string" then
+      lastSeparator = token
+    end
+  end
+
+  if captureOutput then
+    local lines = {}
+    for line in _cout_pipe:lines("l") do lines[#lines+1] = line end
+    _cout_pipe:close()
+  else
+    return lastExitStatus == 0
   end
 end
 
 while true do
   io.write("$ ")
-  print(eval(mkrdr(tokenize(io.read()))))
+  eval(mkrdr(tokenize(readline())))
 end
