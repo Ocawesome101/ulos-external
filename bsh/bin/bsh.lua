@@ -31,7 +31,7 @@ local builtins = {
         logError("sh: cd: HOME not set")
         return 1
       end
-      dir = shenv.home
+      dir = shenv.HOME
     end
 
     local full = path.canonical(dir)
@@ -45,6 +45,11 @@ local builtins = {
       shenv.PWD = full
     end
     return 0
+  end,
+  set = function()
+    for k, v in pairs(shenv) do
+      print(k.."="..v)
+    end
   end
 }
 
@@ -104,13 +109,20 @@ local function executeCommand(cstr, nowait)
     if not ok then logError(cstr.command[1] .. ": " .. err) return 1, err end
   end
 
+  local sios = io.stderr
   local pid = process.spawn {
     func = function()
-      local errno = ok(table.unpack(cstr.command, 2))
-      if type(errno) == "number" then
-        os.exit(errno)
+      local result = table.pack(xpcall(ok, debug.traceback, table.unpack(cstr.command, 2)))
+      if not result[1] then
+        io.stderr:write(cstr.command[1], ": ", result[2], "\n")
+        os.exit(127)
       else
-        os.exit(0)
+        local errno = result[2]
+        if type(errno) == "number" then
+          os.exit(errno)
+        else
+          os.exit(0)
+        end
       end
     end,
     name = cstr.command[1],
@@ -253,8 +265,8 @@ eval = function(tokens, captureOutput)
         return nil, "syntax error near unexpected token `|'"
       else
         local _pipe = pipe.create()
-        struct[#struct].output = pipe
-        struct[#struct+1] = {command = {}, input = pipe,
+        struct[#struct].output = _pipe
+        struct[#struct+1] = {command = {}, input = _pipe,
           output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
       end
     elseif simplified[i] == "&" then
@@ -271,6 +283,8 @@ eval = function(tokens, captureOutput)
     elseif #simplified[i] > 0 then
       if simplified[i]:sub(1,1):match("[\"']") then
         simplified[i] = simplified[i]:sub(2, -2)
+      else
+        simplified[i] = simplified[i]:gsub(" +", " ")
       end
       table.insert(struct[#struct].command, simplified[i])
     end
@@ -318,6 +332,7 @@ eval = function(tokens, captureOutput)
     local lines = {}
     for line in _cout_pipe:lines("l") do lines[#lines+1] = line end
     _cout_pipe:close()
+    return lines
   else
     return lastExitStatus == 0
   end
@@ -356,10 +371,28 @@ function os.execute(...)
   return 0
 end
 
+if fs.stat("/etc/bshrc") then
+  for line in io.lines("/etc/bshrc") do
+    local ok, err = eval(mkrdr(tokenize(line)))
+    if not ok and err then logError("sh: " .. err) end
+  end
+end
+
+if fs.stat(os.getenv("HOME") .. "/.bshrc") then
+  for line in io.lines(os.getenv("HOME") .. "/.bshrc") do
+    local ok, err = eval(mkrdr(tokenize(line)))
+    if not ok and err then logError("sh: " .. err) end
+  end
+end
+
+local hist = {}
+local rlopts = {history = hist}
 while true do
   io.write(process_prompt(os.getenv("PS1")))
-  local text = readline()
+  local text = readline(rlopts)
   if #text > 0 then
+    table.insert(hist, text)
+    if #hist > 32 then table.remove(hist, 1) end
     local ok, err = eval(mkrdr(tokenize(text)))
     if not ok and err then logError("sh: " .. err) end
   end
