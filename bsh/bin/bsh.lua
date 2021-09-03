@@ -1,11 +1,14 @@
--- bsh: Bourne Shell --
+-- bsh: Better Shell --
 
+local path = require("path")
 local pipe = require("pipe")
+local text = require("text")
+local fs = require("filesystem")
 local process = require("process")
 local readline = require("readline")
 
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
-os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W>")
+os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W> ")
 os.setenv("SHLVL", tostring(math.floor((os.getenv("SHLVL") or "0" + 1))))
 
 local logError = function(err)
@@ -13,17 +16,103 @@ local logError = function(err)
   io.stderr:write(err .. "\n")
 end
 
+local shenv = process.info().data.env
+local builtins = {
+  cd = function(dir)
+    if dir == "-" then
+      if not shenv.OLDPWD then
+        logError("sh: cd: OLDPWD not set")
+        return 1
+      end
+      dir = shenv.OLDPWD
+      print(dir)
+    elseif not dir then
+      if not shenv.HOME then
+        logError("sh: cd: HOME not set")
+        return 1
+      end
+      dir = shenv.home
+    end
+
+    local full = path.canonical(dir)
+    local ok, err = fs.stat(full)
+    
+    if not ok then
+      logError("sh: cd: " .. dir .. ": " .. err)
+      return 1
+    else
+      shenv.OLDPWD = shenv.PWD
+      shenv.PWD = full
+    end
+    return 0
+  end
+}
+
+local function exists(file)
+  if fs.stat(file) then return file
+  elseif fs.stat(file .. ".lua") then return file .. ".lua" end
+end
+
 local function resolveCommand(name)
+  if builtins[name] then return builtins[name] end
+  local try = {name}
+  for ent in os.getenv("PATH"):gmatch("[^:]+") do
+    try[#try+1] = path.concat(ent, name)
+  end
+  for i, check in ipairs(try) do
+    local file = exists(check)
+    if file then
+      return file
+    end
+  end
   return nil, "command not found"
 end
 
 local function executeCommand(cstr, nowait)
+  while (cstr.command[1] or ""):match("=") do
+    local name = table.remove(cstr.command, 1)
+    local assign
+    if name:sub(-1) == "=" then
+      name = name:sub(1, -2)
+      assign = table.remove(cstr.command, 1)
+    else
+      name, assign = name:match("^(.-)=(.+)$")
+    end
+    if name then cstr.env[name] = assign end
+  end
+  
+  if #cstr.command == 0 then for k,v in pairs(cstr.env) do os.setenv(k, v) end return 0, "exited" end
+  
   local file, err = resolveCommand(cstr.command[1])
   if not file then logError("sh: " .. cstr.command[1] .. ": " .. err) return 1, err end
-  local ok, err = loadfile(file)
-  if not ok then logError(cstr.command[1] .. ": " .. err) return 1, err end
+  local ok
+  
+  if type(file) == "function" then -- this means it's a builtin
+    if cstr.input == io.stdin and cstr.output == io.stdout then
+      local result = table.pack(pcall(file, table.unpack(cstr.command, 2)))
+      if not result[1] and result[2] then
+        logError("sh: " .. cstr.command[1] .. ": " .. result[2])
+        return 1, result[2]
+      elseif result[1] then
+        return table.unpack(result, 2, result.n)
+      end
+    else
+      ok = file
+    end
+  else
+    ok, err = loadfile(file)
+    if not ok then logError(cstr.command[1] .. ": " .. err) return 1, err end
+  end
+
   local pid = process.spawn {
-    func = function()return ok(table.unpack(cstr.command, 2)) end,
+    func = function()
+      local errno = ok(table.unpack(cstr.command, 2))
+      if type(errno) == "number" then
+        os.exit(errno)
+      else
+        os.exit(0)
+      end
+    end,
     name = cstr.command[1],
     stdin = cstr.input,
     input = cstr.input,
@@ -32,6 +121,7 @@ local function executeCommand(cstr, nowait)
     stderr = cstr.err,
     env = cstr.env
   }
+  
   if not nowait then
     return process.await(pid)
   end
@@ -130,7 +220,7 @@ eval = function(tokens, captureOutput)
       tokens:get_until("\n")
     elseif tok:match("[ |;\n&]") and #simplified[#simplified] > 0 then
       if tok ~= " " and tok ~= "\n" then simplified[#simplified+1] = tok end
-      simplified[#simplified + 1] = ""
+      if #simplified[#simplified] > 0 then simplified[#simplified + 1] = "" end
     elseif tok == "}" then
       return nil, "syntax error near unexpected token `}'"
     elseif tok == ")" then
@@ -178,7 +268,10 @@ eval = function(tokens, captureOutput)
       else
         struct[#struct+1] = "&"
       end
-    else
+    elseif #simplified[i] > 0 then
+      if simplified[i]:sub(1,1):match("[\"']") then
+        simplified[i] = simplified[i]:sub(2, -2)
+      end
       table.insert(struct[#struct].command, simplified[i])
     end
   end
@@ -230,7 +323,44 @@ eval = function(tokens, captureOutput)
   end
 end
 
+local function process_prompt(ps)
+  return (ps:gsub("\\(.)", {
+    ["$"] = os.getenv("USER") == "root" and "#" or "$",
+    ["a"] = "\a",
+    ["A"] = os.date("%H:%M"),
+    ["d"] = os.date("%a %b %d"),
+    ["e"] = "\27",
+    ["h"] = (os.getenv("HOSTNAME") or "localhost"):gsub("%.(.+)$", ""),
+    ["h"] = os.getenv("HOSTNAME") or "localhost",
+    ["j"] = "0", -- the number of jobs managed by the shell
+    ["l"] = "tty" .. math.floor(io.stderr.tty or 0),
+    ["n"] = "\n",
+    ["r"] = "\r",
+    ["s"] = "sh",
+    ["t"] = os.date("%T"),
+    ["T"] = os.date("%I:%M:%S"),
+    ["@"] = os.date("%H:%M %p"),
+    ["u"] = os.getenv("USER"),
+    ["v"] = "0.5",
+    ["V"] = "0.5.0",
+    ["w"] = os.getenv("PWD"):gsub(
+      "^"..text.escape(os.getenv("HOME")), "~"),
+    ["W"] = (os.getenv("PWD") or "/"):gsub(
+      "^"..text.escape(os.getenv("HOME")), "~"):match("([^/]+)/?$") or "/",
+  }))
+end
+
+function os.execute(...)
+  local cmd = table.concat({...}, " ")
+  if #cmd > 0 then return eval(mkrdr(tokenize(cmd))) end
+  return 0
+end
+
 while true do
-  io.write("$ ")
-  eval(mkrdr(tokenize(readline())))
+  io.write(process_prompt(os.getenv("PS1")))
+  local text = readline()
+  if #text > 0 then
+    local ok, err = eval(mkrdr(tokenize(text)))
+    if not ok and err then logError("sh: " .. err) end
+  end
 end
