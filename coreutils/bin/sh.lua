@@ -1,2 +1,4 @@
 -- this is the closest thing to a symlink possible with OpenComputers
-assert(loadfile((os.getenv("SHELL") or "/bin/lsh") .. ".lua"))()
+local shell = os.getenv("SHELL")
+if shell == "/bin/sh" then shell = "/bin/lsh" end
+assert(loadfile((shell or "/bin/lsh") .. ".lua"))()
