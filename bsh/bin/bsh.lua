@@ -7,15 +7,18 @@ local fs = require("filesystem")
 local process = require("process")
 local readline = require("readline")
 
+local args, opts = require("argutil").parse(...)
+
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
 os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W> ")
-os.setenv("SHLVL", tostring(math.floor((os.getenv("SHLVL") or "0" + 1))))
+os.setenv("SHLVL", tostring(math.floor(((os.getenv("SHLVL") or "0") + 1))))
 
 local logError = function(err)
   if not err then return end
   io.stderr:write(err .. "\n")
 end
 
+local aliases = {}
 local shenv = process.info().data.env
 local builtins = {
   cd = function(dir)
@@ -46,10 +49,104 @@ local builtins = {
     end
     return 0
   end,
-  set = function()
-    for k, v in pairs(shenv) do
-      print(k.."="..v)
+  set = function(...)
+    local args = {...}
+    if #args == 0 then
+      for k, v in pairs(shenv) do
+        if v:match(" ") then v = "'" .. v .. "'" end
+        print(k.."="..v)
+      end
+    else
+      for i=1, #args, 1 do
+        local name, assign = args[i]:match("(.-)=(.+)")
+        if name then shenv[name] = assign end
+      end
     end
+  end,
+  unset = function(...)
+    local args = table.pack(...)
+    for i=1, #args, 1 do
+      shenv[args[i]] = nil
+    end
+  end,
+  kill = function(...)
+    local args, opts = {}, {}
+    local _raw_args = {...}
+    local signal = process.signals.interrupt
+    for i, argument in ipairs(_raw_args) do
+      if argument:match("%-.+") then
+        local value = argument:match("%-(.+)"):lower()
+        if tonumber(value) then signal = value else opts[value] = true end
+      elseif not tonumber(argument) then
+        logError("sh: kill: expected number as PID")
+        return 1
+      else
+        args[#args+1] = tonumber(argument)
+      end
+    end
+    local signal = process.signals.interrupt
+    for k,v in pairs(opts) do
+      if process.signals[k] then signal = process.signals[k] end
+    end
+    if opts.sighup then signal = process.signals.hangup end
+    if opts.sigint then signal = process.signals.interrupt end
+    if opts.sigquit then signal = process.signals.quit end
+    if opts.sigpipe then signal = process.signals.pipe end
+    if opts.sigstop then signal = process.signals.stop end
+    if opts.sigcont then signal = process.signals.continue end
+    local exstat = 0
+    for i=1, #args, 1 do
+      local ok, err = process.kill(args[i], signal)
+      if not ok then
+        logError("sh: kill: kill process " .. args[i] .. ": " .. err)
+        exstat = 1
+      end
+    end
+    return exstat
+  end,
+  exit = function(n) os.exit(tonumber(n or "") or 0) end,
+  logout = function(n)
+    if not (opts.login or opts.l) then
+      logError("sh: logout: not login shell: use `exit'")
+    end
+    os.exit(0)
+  end,
+  pwd = function() print(shenv.PWD) end,
+  ["true"] = function() return 0 end,
+  ["false"] = function() return 1 end,
+  alias = function(...)
+    local args = {...}
+    local exstat = 0
+    if #args == 0 then
+      for k, v in pairs(aliases) do
+        print("alias " .. k .. "='" .. v .. "'")
+      end
+    else
+      for i=1, #args, 1 do
+        local name, alias = args[i]:match("(.-)=(.+)")
+        if name then aliases[name] = alias
+        elseif aliases[args[i]] then
+          print("alias " .. args[i] .. "='" .. aliases[args[i]] .. "'")
+        else
+          logError("sh: alias: " .. args[i] .. ": not found")
+            exstat = 1
+        end
+      end
+    end
+    return exstat
+  end,
+  unalias = function(...)
+    local args = {...}
+    local exstat = 0
+    for i=1, #args, 1 do
+      if not aliases[args[i]] then
+        logError("sh: unalias: " .. args[i] .. ": not found")
+        exstat = 1
+      else
+        aliases[args[i]] = nil
+      end
+    end
+    return exstat
   end
 }
 
@@ -77,12 +174,7 @@ local function executeCommand(cstr, nowait)
   while (cstr.command[1] or ""):match("=") do
     local name = table.remove(cstr.command, 1)
     local assign
-    if name:sub(-1) == "=" then
-      name = name:sub(1, -2)
-      assign = table.remove(cstr.command, 1)
-    else
-      name, assign = name:match("^(.-)=(.+)$")
-    end
+    name, assign = name:match("^(.-)=(.+)$")
     if name then cstr.env[name] = assign end
   end
   
@@ -139,7 +231,7 @@ local function executeCommand(cstr, nowait)
   end
 end
 
-local special = "['\" %[%(%$&#|%){}\n;]"
+local special = "['\" %[%(%$&#|%){}\n;<>]"
 
 local function tokenize(text)
   text = text:gsub("$([a-zA-Z0-9_]+)", function(x)return os.getenv(x)or""end)
@@ -202,8 +294,9 @@ do
   end
 end
 
-local eval
-eval = function(tokens, captureOutput)
+local eval_1, eval_2
+
+eval_1 = function(tokens)
   -- first pass: simplify it all
   local simplified = {""}
   while true do
@@ -213,7 +306,7 @@ eval = function(tokens, captureOutput)
       if tokens:peek() == "(" then
         local seq = tokens:get_balanced("(",")")
         seq[#seq] = nil
-        seq = eval(mkrdr(seq), true) or {}
+        seq = eval_2(eval_1(mkrdr(seq)), true) or {}
         for i=1, #seq, 1 do
           if #simplified[#simplified]==0 then
             simplified[#simplified]=seq[i]
@@ -230,24 +323,39 @@ eval = function(tokens, captureOutput)
       end
     elseif tok == "#" then
       tokens:get_until("\n")
+    elseif tok:sub(1,1):match("['\"]") then
+      simplified[#simplified] = simplified[#simplified] .. tok:sub(2,-2)
     elseif tok:match("[ |;\n&]") and #simplified[#simplified] > 0 then
-      if tok ~= " " and tok ~= "\n" then simplified[#simplified+1] = tok end
+      if tok:match("[^\n ]") then simplified[#simplified+1] = tok end
       if #simplified[#simplified] > 0 then simplified[#simplified + 1] = "" end
     elseif tok == "}" then
       return nil, "syntax error near unexpected token `}'"
     elseif tok == ")" then
       return nil, "syntax error near unexpected token `)'"
-    else
+    elseif tok == ">" then
+      if simplified[#simplified] == ">" then
+        simplified[#simplified] = ">>"
+      else
+        simplified[#simplified+1] = tok
+      end
+    elseif tok == "<" then
+      simplified[#simplified+1] = tok
+    elseif tok ~= " " then
       simplified[#simplified] = simplified[#simplified] .. tok
     end
   end
   if #simplified == 0 then return end
+  return simplified
+end
+
+eval_2 = function(simplified, captureOutput, captureInput)
+  if not simplified then return nil, captureOutput end
   local _cout_pipe
   if captureOutput then
-    _cout_pipe = pipe.create()
+    _cout_pipe = captureInput or pipe.create()
   end
   -- second pass: set up command structure
-  local struct = {{command = {}, input = io.stdin,
+  local struct = {{command = {}, input = captureInput or io.stdin,
     output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}}
   local i = 0
   while i < #simplified do
@@ -257,7 +365,7 @@ eval = function(tokens, captureOutput)
         return nil, "syntax error near unexpected token `;'"
       elseif i ~= #simplified then
         struct[#struct+1] = ";"
-        struct[#struct+1] = {command = {}, input = io.stdin,
+        struct[#struct+1] = {command = {}, input = captureInput or io.stdin,
           output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
       end
     elseif simplified[i] == "|" then
@@ -275,52 +383,98 @@ eval = function(tokens, captureOutput)
       elseif simplified[i+1] == "&" then
         i = i + 1
         struct[#struct+1] = "&&"
-        struct[#struct+1] = {command = {}, input = io.stdin,
+        struct[#struct+1] = {command = {}, input = captureInput or io.stdin,
           output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
       else
         struct[#struct+1] = "&"
       end
-    elseif #simplified[i] > 0 then
-      if simplified[i]:sub(1,1):match("[\"']") then
-        simplified[i] = simplified[i]:sub(2, -2)
+    elseif simplified[i] == ">" or simplified[i] == ">>" then
+      if not simplified[i+1] then
+        return nil, "syntax error near unexpected token `" .. simplified[i] .. "'"
       else
-        simplified[i] = simplified[i]:gsub(" +", " ")
+        i = i + 1
+        local handle, err = io.open(simplified[i], simplified[i-1] == ">" and "w" or "a")
+        if not handle then
+          return nil, "cannot open " .. simplified[i] .. ": " .. err
+        end
+        struct[#struct].output = handle
       end
-      table.insert(struct[#struct].command, simplified[i])
+    elseif simplified[i] == "<" then
+      if not simplified[i+1] then
+        return nil, "syntax error near unexpected token `<'"
+      else
+        i = i + 1
+        local handle, err = io.open(simplified[i], "r")
+        if not handle then
+          return nil, "cannot open " .. simplified[i] .. ": " .. err
+        end
+        struct[#struct].input = handle
+      end
+    elseif #simplified[i] > 0 then
+      if #struct[#struct].command == 0 and aliases[simplified[i]] then
+        local tokens = eval_1(mkrdr(tokenize(aliases[simplified[i]])))
+        for i=1, #tokens, 1 do table.insert(struct[#struct].command, tokens[i]) end
+      else
+        if simplified[i]:sub(1,1) == "~" then simplified[i] = path.concat(os.getenv("HOME"), 
+          simplified[i]) end
+        if simplified[i]:sub(-1) == "*" then
+          local full = path.canonical(simplified[i])
+          if full:sub(-2) == "/*" then -- simpler
+            local files = fs.list(full:sub(1,-2)) or {}
+            for i=1, #files, 1 do
+              table.insert(struct[#struct].command, path.concat(full:sub(1,-2),
+                files[i]))
+            end
+          else
+            local _path, name = full:match("^(.+/)(.-)$")
+            local files = fs.list(_path) or {}
+            name = text.escape(name:sub(1,-2)) .. ".+$"
+            for i=1, #files, 1 do
+              if files[i]:match(name) then
+                table.insert(struct[#struct].command, path.concat(_path, files[i]))
+              end
+            end
+          end
+        else
+          table.insert(struct[#struct].command, simplified[i])
+        end
+      end
     end
   end
 
   local srdr = mkrdr(struct)
+  local bg = not not captureInput
   local lastExitStatus, lastExitReason, lastSeparator = 0, "", ";"
   for token in srdr.pop, srdr do
+    bg = (srdr:peek(1) == "|") or not not captureInput
     if type(token) == "table" then
       if lastSeparator == "&&" then
         if lastExitStatus == 0 then
-          local exitStatus, exitReason = executeCommand(token)
+          local exitStatus, exitReason = executeCommand(token, bg)
           lastExitStatus = exitStatus
           if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
               and exitReason and #exitReason > 0 then
-            logError(err)
+            logError(exitReason)
           end
         end
       elseif lastSeparator == "&" then
         executeCommand(token, true)
       elseif lastSeparator == "|" then
         if lastExitStatus == 0 then
-          local exitStatus, exitReason = executeCommand(token)
+          local exitStatus, exitReason = executeCommand(token, bg)
           lastExitStatus = exitStatus
           if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
               and exitReason and #exitReason > 0 then
-            logError(err)
+            logError(exitReason)
           end
         end
       elseif lastSeparator == ";" then
         lastExitStatus = 0
-        local exitStatus, exitReason = executeCommand(token)
+        local exitStatus, exitReason = executeCommand(token, bg)
         lastExitStatus = exitStatus
         if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
             and exitReason and #exitReason > 0 then
-          logError(err)
+          logError(exitReason)
         end
       end
     elseif type(token) == "string" then
@@ -328,7 +482,7 @@ eval = function(tokens, captureOutput)
     end
   end
 
-  if captureOutput then
+  if captureOutput and not captureInput then
     local lines = {}
     for line in _cout_pipe:lines("l") do lines[#lines+1] = line end
     _cout_pipe:close()
@@ -367,20 +521,40 @@ end
 
 function os.execute(...)
   local cmd = table.concat({...}, " ")
-  if #cmd > 0 then return eval(mkrdr(tokenize(cmd))) end
+  if #cmd > 0 then return eval_2(eval_1(mkrdr(tokenize(cmd)))) end
   return 0
+end
+
+function os.remove(_path)
+  return fs.remove(path.canonical(_path))
+end
+
+function io.popen(command, mode)
+  checkArg(1, command, "string")
+  checkArg(2, mode, "string", "nil")
+  mode = mode or "r"
+  assert(mode == "r" or mode == "w", "bad mode to io.popen")
+
+  local handle = pipe.create()
+
+  local ok, err = eval_2(eval_1(mkrdr(tokenize(command))), true, handle)
+  if not ok and err then
+    return nil, err
+  end
+
+  return handle
 end
 
 if fs.stat("/etc/bshrc") then
   for line in io.lines("/etc/bshrc") do
-    local ok, err = eval(mkrdr(tokenize(line)))
+    local ok, err = eval_2(eval_1(mkrdr(tokenize(line))))
     if not ok and err then logError("sh: " .. err) end
   end
 end
 
 if fs.stat(os.getenv("HOME") .. "/.bshrc") then
   for line in io.lines(os.getenv("HOME") .. "/.bshrc") do
-    local ok, err = eval(mkrdr(tokenize(line)))
+    local ok, err = eval_2(eval_1(mkrdr(tokenize(line))))
     if not ok and err then logError("sh: " .. err) end
   end
 end
@@ -393,7 +567,7 @@ while true do
   if #text > 0 then
     table.insert(hist, text)
     if #hist > 32 then table.remove(hist, 1) end
-    local ok, err = eval(mkrdr(tokenize(text)))
+    local ok, err = eval_2(eval_1(mkrdr(tokenize(text))))
     if not ok and err then logError("sh: " .. err) end
   end
 end
