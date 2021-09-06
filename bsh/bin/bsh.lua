@@ -9,9 +9,13 @@ local readline = require("readline")
 
 local args, opts = require("argutil").parse(...)
 
+local _VERSION_FULL = "0.8.4"
+local _VERSION_MAJOR = _VERSION_FULL:sub(1, -3)
+
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
 os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W> ")
 os.setenv("SHLVL", tostring(math.floor(((os.getenv("SHLVL") or "0") + 1))))
+os.setenv("BSH_VERSION", _VERSION_FULL)
 
 local logError = function(err)
   if not err then return end
@@ -104,11 +108,20 @@ local builtins = {
     end
     return exstat
   end,
-  exit = function(n) os.exit(tonumber(n or "") or 0) end,
+  exit = function(n)
+    if opts.l or opts.login then
+      logError("logout")
+    else
+      logError("exit")
+    end
+    os.exit(tonumber(n or "") or 0)
+  end,
   logout = function(n)
     if not (opts.login or opts.l) then
       logError("sh: logout: not login shell: use `exit'")
+      return 1
     end
+    logError("logout")
     os.exit(0)
   end,
   pwd = function() print(shenv.PWD) end,
@@ -181,7 +194,7 @@ local function executeCommand(cstr, nowait)
   if #cstr.command == 0 then for k,v in pairs(cstr.env) do os.setenv(k, v) end return 0, "exited" end
   
   local file, err = resolveCommand(cstr.command[1])
-  if not file then logError("sh: " .. cstr.command[1] .. ": " .. err) return 1, err end
+  if not file then logError("sh: " .. cstr.command[1] .. ": " .. err) return nil, err end
   local ok
   
   if type(file) == "function" then -- this means it's a builtin
@@ -198,7 +211,7 @@ local function executeCommand(cstr, nowait)
     end
   else
     ok, err = loadfile(file)
-    if not ok then logError(cstr.command[1] .. ": " .. err) return 1, err end
+    if not ok then logError(cstr.command[1] .. ": " .. err) return nil, err end
   end
 
   local sios = io.stderr
@@ -231,7 +244,7 @@ local function executeCommand(cstr, nowait)
   end
 end
 
-local special = "['\" %[%(%$&#|%){}\n;<>]"
+local special = "['\" %[%(%$&#|%){}\n;<>~]"
 
 local function tokenize(text)
   text = text:gsub("$([a-zA-Z0-9_]+)", function(x)return os.getenv(x)or""end)
@@ -283,9 +296,9 @@ do
     local i=1
     self:pop()
     repeat
-      local _c=self:pop()
-      t[#t+1]=_c
-      i=i+((c==s and 1)or(c==e and-1)or 0)
+      local _c = self:pop()
+      t[#t+1] = _c
+      i = i + ((_c == s and 1) or (_c == e and -1) or 0)
     until i==0 or not _c
     return t
   end
@@ -305,13 +318,13 @@ eval_1 = function(tokens)
     if tok == "$" then
       if tokens:peek() == "(" then
         local seq = tokens:get_balanced("(",")")
-        seq[#seq] = nil
-        seq = eval_2(eval_1(mkrdr(seq)), true) or {}
-        for i=1, #seq, 1 do
+        seq[#seq] = nil -- remove trailing )
+        local cseq = eval_2(eval_1(mkrdr(seq)), true) or {}
+        for i=1, #cseq, 1 do
           if #simplified[#simplified]==0 then
-            simplified[#simplified]=seq[i]
+            simplified[#simplified]=cseq[i]
           else
-            simplified[#simplified+1]=seq[i]
+            simplified[#simplified+1]=cseq[i]
           end
         end
       elseif tokens:peek() == "{" then
@@ -340,6 +353,12 @@ eval_1 = function(tokens)
       end
     elseif tok == "<" then
       simplified[#simplified+1] = tok
+    elseif tok == "~" then
+      if #simplified[#simplified] > 0 then
+        simplified[#simplified] = simplified[#simplified] .. "~"
+      else
+        simplified[#simplified + 1] = os.getenv("HOME")
+      end
     elseif tok ~= " " then
       simplified[#simplified] = simplified[#simplified] .. tok
     end
@@ -473,7 +492,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
         local exitStatus, exitReason = executeCommand(token, bg)
         lastExitStatus = exitStatus
         if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
-            and exitReason and #exitReason > 0 then
+            and exitReason and #exitReason > 0 and type(exitStatis) == "number" then
           logError(exitReason)
         end
       end
@@ -510,8 +529,8 @@ local function process_prompt(ps)
     ["T"] = os.date("%I:%M:%S"),
     ["@"] = os.date("%H:%M %p"),
     ["u"] = os.getenv("USER"),
-    ["v"] = "0.5",
-    ["V"] = "0.5.0",
+    ["v"] = _VERSION_MAJOR_MINOR,
+    ["V"] = _VERSION_FULL,
     ["w"] = os.getenv("PWD"):gsub(
       "^"..text.escape(os.getenv("HOME")), "~"),
     ["W"] = (os.getenv("PWD") or "/"):gsub(
@@ -560,7 +579,7 @@ if fs.stat(os.getenv("HOME") .. "/.bshrc") then
 end
 
 local hist = {}
-local rlopts = {history = hist}
+local rlopts = {history = hist, exit = builtins.exit}
 while true do
   io.write(process_prompt(os.getenv("PS1")))
   local text = readline(rlopts)

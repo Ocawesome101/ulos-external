@@ -1,0 +1,43 @@
+*{NAME}
+  bsh - Better Shell
+
+*{SYNOPSIS}
+  ${bsh} *{-l}|*{--login}
+  ${bsh}
+
+*{DESCRIPTION}
+  ${bsh} is a Bourne-like shell.  It is a significantly improved, and in fact rewritten, version of the *{sh} shell shipped with ULOS prior to Release 1.7.  It supports piping, input/output redirection, command aliases, basic glob expansion, and substitution.
+
+  ${bsh} is prioritized over *{lsh}(*{1}) by the *{sh}(*{1}) utility, if it is installed.  *{lsh} is still available, and may be set as a user's default shell with the *{passwd}(*{1}) utility.
+
+*{SYNTAX}
+  This section contains explanations of the syntax of ${bsh}.  It should be familiar to those familiar with the Bourne shell.
+
+  *{Environment Variable Substitution}
+  Environment variables may be subsituted with the *{$}*{{}*{VARIABLE_NAME}*{}} syntax for variables whose names contain characters outside of the *{[0-9a-zA-z_]} range, and *{$VARIABLE_NAME} for those variables whose names do not contain such characters.  For example, the variable *{foo-bar} must be substituted with *{$}*{{}*{foo-bar}*{}}, whereas the variable *{baz} may be substituted with *{$baz}.
+
+  *{Command Aliases}
+  Aliases may be defined with the *{alias} builtin;  see *{BUILTINS} below.
+
+  *{Glob Expansion}
+  Globs with the *{*} character are supported in place of a filename, or the end of a filename at the end of a path specifier, or in place of a directory name anywhere else.  Thus, the following cases are valid:
+
+    #{/bin/}*{*}
+    #{/lib/}*{*}#{/test}
+    #{/tmp/part*}
+
+  The following case is not valid and will result in undefined behavior:
+
+    #{/example/part}*{*}#{/foo}
+
+  *{Piping}
+  TODO
+
+  *{I/O Redirection}
+  TODO
+
+*{COPYRIGHT}
+  Better Shell copyright (c) 2021 Ocawesome101 under the DSLv2.
+
+*{REPORTING BUGS}
+  Please report bugs at @{https://github.com/ocawesome101/oc-ulos/issues}.
