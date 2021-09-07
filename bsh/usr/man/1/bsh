@@ -31,10 +31,28 @@
     #{/example/part}*{*}#{/foo}
 
   *{Piping}
-  TODO
+  ${bsh} supports piping the output of program *{foo} into the input of program *{bar} with the following syntax:
+    
+    ${foo} *{|} ${bar}
+
+  These chains may be extended indefinitely.
 
   *{I/O Redirection}
-  TODO
+  A program *{foo}'s input may be directed to an arbitrary file #{f}, where replacing the single *{>} with a double *{>>} will append to the file #{f} rather than overwriting it.
+
+    ${foo} *{>} #{f}
+
+  Similarly, a program *{bar}'s output may be pointed to a file #{f} with the *{<} operator:
+
+    ${bar} *{<} #{f}
+
+  *{Comments}
+  Comments extend from the first *{#} found in a line to the end of that line.
+
+  *{Command Chains}
+  ${bsh} supports the *{&&} operator for conditional program execution.  Combined with input/output redirection and piping (see the corresponding sections above) this can be quite powerful.  Program invocations may be separated with a *{;}, as such:
+
+    ${foo}*{;} ${bar} a b c*{;} ${baz}
 
 *{COPYRIGHT}
   Better Shell copyright (c) 2021 Ocawesome101 under the DSLv2.

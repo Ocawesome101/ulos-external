@@ -183,6 +183,8 @@ local function resolveCommand(name)
   return nil, "command not found"
 end
 
+local jobs = {}
+
 local function executeCommand(cstr, nowait)
   while (cstr.command[1] or ""):match("=") do
     local name = table.remove(cstr.command, 1)
@@ -241,6 +243,9 @@ local function executeCommand(cstr, nowait)
   
   if not nowait then
     return process.await(pid)
+  else
+    jobs[#jobs+1] = pid
+    print(string.format("[%d] %d", #jobs, pid))
   end
 end
 
@@ -405,7 +410,11 @@ eval_2 = function(simplified, captureOutput, captureInput)
         struct[#struct+1] = {command = {}, input = captureInput or io.stdin,
           output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
       else
-        struct[#struct+1] = "&"
+        -- support for & is broken right now, i might fix it later.
+        --struct[#struct+1] = "&"
+        --struct[#struct+1] = {command = {}, input = captureInput or io.stdin,
+        --  output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
+        return nil, "syntax error near unexpected token `&'"
       end
     elseif simplified[i] == ">" or simplified[i] == ">>" then
       if not simplified[i+1] then
@@ -465,7 +474,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
   local bg = not not captureInput
   local lastExitStatus, lastExitReason, lastSeparator = 0, "", ";"
   for token in srdr.pop, srdr do
-    bg = (srdr:peek(1) == "|") or not not captureInput
+    --bg = (srdr:peek() == "|" or srdr:peek() == "&") or not not captureInput
     if type(token) == "table" then
       if lastSeparator == "&&" then
         if lastExitStatus == 0 then
@@ -476,8 +485,6 @@ eval_2 = function(simplified, captureOutput, captureInput)
             logError(exitReason)
           end
         end
-      elseif lastSeparator == "&" then
-        executeCommand(token, true)
       elseif lastSeparator == "|" then
         if lastExitStatus == 0 then
           local exitStatus, exitReason = executeCommand(token, bg)
