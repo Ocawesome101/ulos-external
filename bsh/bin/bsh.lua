@@ -308,7 +308,7 @@ do
     return t
   end
   mkrdr = function(t)
-    return setmetatable({i=1,t=t},{__index=r})
+    return setmetatable({i=1,t=t or{}},{__index=r})
   end
 end
 
