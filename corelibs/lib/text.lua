@@ -88,22 +88,27 @@ function lib.wrap(text, width)
 
   local len = 0
   local invt = false
+  local esc_len = 0
   for c in text:gmatch(".") do
     odat = odat .. c
     if invt then
+      esc_len = esc_len + 1
       if c:match("[a-zA-Z]") then invt = false end
     elseif c == "\27" then
+      esc_len = esc_len + 1
       invt = true
     else
       len = len + 1
       if c == "\n" then
         len = 0
+        esc_len = 0
       elseif len >= width then
-        local last = odat:gsub("\27.-[a-zA-Z]", ""):reverse():find(splitters)
+        local last = odat:reverse():find(splitters)
         local last_nl = odat:reverse():find("\n") or 0
-        local indt = odat:sub(-last_nl + 1):match("^( *)") or ""
+        local indt = odat:sub(-last_nl + 1):match("^ *") or ""
         
-        if last and last < width // 4 and last > 1 and not c:match(ws_sp) then
+        if last and (last - esc_len) < (width // 4) and last > 1 and
+            not c:match(ws_sp) then
           odat = odat:sub(1, -last) .. "\n" .. indt .. odat:sub(-last + 1)
           len = last + #indt - 1
         else
@@ -113,6 +118,7 @@ function lib.wrap(text, width)
       end
     end
   end
+  if odat:sub(-1) ~= "\n" then odat = odat .. "\n" end
 
   return odat
 end

@@ -24,7 +24,8 @@ end
 
 local aliases = {}
 local shenv = process.info().data.env
-local builtins = {
+local builtins
+builtins = {
   cd = function(dir)
     if dir == "-" then
       if not shenv.OLDPWD then
@@ -142,7 +143,7 @@ local builtins = {
           print("alias " .. args[i] .. "='" .. aliases[args[i]] .. "'")
         else
           logError("sh: alias: " .. args[i] .. ": not found")
-            exstat = 1
+          exstat = 1
         end
       end
     end
@@ -160,6 +161,9 @@ local builtins = {
       end
     end
     return exstat
+  end,
+  builtins = function()
+    for k, v in pairs(builtins) do print(k) end
   end
 }
 

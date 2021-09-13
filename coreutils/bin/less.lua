@@ -54,7 +54,7 @@ io.write("\27[2J")
 redraw()
 
 local prompt = string.format("\27[%d;1H\27[2K:", h)
-
+local lastpat = ""
 io.write(prompt)
 while true do
   local key, flags = termio.readKey()
@@ -71,9 +71,21 @@ while true do
   elseif key == "down" then
     scroll(true)
   elseif key == " " then
-    scr=math.min(scr+h, #lines - h - 1)
+    scr=math.min(scr+h, #lines - h)
   elseif key == "/" then
-    local search = io.read()
+    io.write(string.format("\27[%d;1H/", h))
+    local search = io.read("l")
+    if #search > 0 then
+      lastpat = search
+    else
+      search = lastpat
+    end
+    for i=math.max(scr, 1)+1, #lines, 1 do
+      if lines[i]:match(search) then
+        scr = math.min(i, #lines - h)
+        break
+      end
+    end
   end
   redraw()
   io.write(prompt)

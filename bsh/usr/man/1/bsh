@@ -54,6 +54,47 @@
 
     ${foo}*{;} ${bar} a b c*{;} ${baz}
 
+*{SHELL BUILTINS}
+  ${bsh} contains a small set of built-in commands.  It will only create a process for a builtin command if that command's input or output is being redirected.
+
+  The following is a short description of each builtin command:
+
+    *{builtins}
+      Print each available built-in command.
+
+    *{cd}
+      Change the current working directory.  If no argument is given, changes to *{$HOME};  if the argument given is *{-}, changes to *{$OLDPWD}.
+
+    *{set}
+      If no arguments are provided, prints the value of all environment variables.  Otherwise, for each argument matching *{key}=*{value}, sets the environment variable *{key}'s value to *{value}.
+      
+    *{unset}
+      Unsets each provided environment variable.
+
+    *{alias}
+      If no arguments are provided, prints all aliases specified in the current shell.  Otherwise, for each argument, if that argument matches *{key}=*{value}, aliases *{key} to *{value};  otherwise, if the argument is a valid alias, prints it and its value.
+
+    *{unalias}
+      Unsets each provided alias.
+
+    *{kill}
+      Kills processes.  Valid options are: *{sighup}, *{sigint}, *{sigquit}, *{sigpipe}, *{sigstop}, *{sigcont}, or otherwise any signal defined by the *{process}(*{3}) library.
+
+    *{exit}
+      Exits the current ${bsh} session.  The shell's exit status is 0 or, if present, the first argument converted to a number.
+
+    *{logout}
+      Exits a login shell.
+
+    *{pwd}
+      Prints the current working directory (i.e. the value of *{$PWD}).
+
+    *{true}
+      Exits with a status of 0.
+
+    *{false}
+      Exits with a status of 1.
+
 *{COPYRIGHT}
   Better Shell copyright (c) 2021 Ocawesome101 under the DSLv2.
 
