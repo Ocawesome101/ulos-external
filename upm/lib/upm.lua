@@ -417,6 +417,7 @@ end
 lib.search=search
 lib.update=update
 lib.download=download
+lib.download_package = dl_pkg
 lib.extract=extract
 lib.install_package=install_package
 lib.install=install
