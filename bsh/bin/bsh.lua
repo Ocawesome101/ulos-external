@@ -9,7 +9,7 @@ local readline = require("readline")
 
 local args, opts = require("argutil").parse(...)
 
-local _VERSION_FULL = "0.9.0"
+local _VERSION_FULL = "0.9.2"
 local _VERSION_MAJOR = _VERSION_FULL:sub(1, -3)
 
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
