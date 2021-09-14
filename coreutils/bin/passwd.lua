@@ -20,6 +20,8 @@ Options:
   --shell=PATH    Set the user's shell.
   --enable=P,...  Enable user ACLs.
   --disable=P,... Disable user ACLs.
+  --clear-acls    Clear ACLs before applying
+  --              '--enable'.
   -r, --remove    Remove the specified user.
 
 Note that an ACL may only be set if held by the
@@ -55,9 +57,11 @@ attr.name = attr.name or user
 
 local acls = attr.acls or 0
 attr.acls = {}
-for k, v in pairs(acl.user) do
-  if acls & v ~= 0 then
-    attr.acls[k] = true
+if not opts["clear-acls"] then
+  for k, v in pairs(acl.user) do
+    if acls & v ~= 0 then
+      attr.acls[k] = true
+    end
   end
 end
 
