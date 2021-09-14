@@ -15,7 +15,7 @@
   blue{getopt}(green{opts}, magenta{...}): green{table}, green{table}
     A more advanced argument processor than blue{parse}().
 
-    The green{opts} table must contain one green{opts} table, whose keys are the names of options and whose values are tables containing a magenta{takes_argument} boolean.  green{opts} may also specify the magenta{exit_on_bad_opt} option to exit if an unrecognized option is given, and a magenta{allow_finish} boolean to allow a *{--} argument to stop option processing.
+    The green{opts} table must contain one green{opts} table, whose keys are the names of options and whose values are a magenta{boolean} specifying whether that option takes a single argument.  green{opts} may also specify the magenta{exit_on_bad_opt} option to exit if an unrecognized option is given, and a magenta{allow_finish} boolean to allow a *{--} argument to stop option processing.
 
 *{COPYRIGHT}
   ULOS Core Libraries copyright (c) 2021 Ocawesome101 under the DSLv2.

@@ -41,7 +41,7 @@ end
 function lib.getopt(_opts, ...)
   checkArg(1, _opts, "table")
   local _args = table.pack(...)
-  local args, opts = {}
+  local args, opts = {}, {}
   local skip_next, done = false, false
   for i, arg in ipairs(_args) do
     if skip_next then skip_next = false
@@ -50,8 +50,8 @@ function lib.getopt(_opts, ...)
         done = true
       elseif arg:match("%-%-(.+)") then
         arg = arg:sub(3)
-        if _opts.options[arg] then
-          if _opts.options[arg].takes_argument then
+        if _opts.options[arg] ~= nil then
+          if _opts.options[arg] then
             if (not _args[i+1]) then
               io.stderr:write("option '", arg, "' requires an argument\n")
               os.exit(1)
@@ -67,7 +67,7 @@ function lib.getopt(_opts, ...)
         end
       else
         arg = arg:sub(2)
-        if (_opts.options[arg:sub(1,1)] or {}).takes_argument then
+        if _opts.options[arg:sub(1,1)] then
           local a = arg:sub(1,1)
           if #arg == 1 then
             if not _args[i+1] then
@@ -81,12 +81,12 @@ function lib.getopt(_opts, ...)
           end
         else
           for c in arg:gmatch(".") do
-            if not _opts.options[c] then
+            if _opts.options[c] == nil then
               if _opts.exit_on_bad_opt then
                 io.stderr:write("unreciognized option '", arg, "'\n")
                 os.exit(1)
               end
-            elseif _opts.options[c].takes_argument then
+            elseif _opts.options[c] then
               if not _args[i+1] then
                 io.stderr:write("option '", arg, "' requires an argument\n")
                 os.exit(1)

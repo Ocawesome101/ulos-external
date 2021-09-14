@@ -164,6 +164,13 @@ builtins = {
   end,
   builtins = function()
     for k, v in pairs(builtins) do print(k) end
+  end,
+  time = function(...)
+    local cmd = table.concat(table.pack(...), " ")
+    local start = require("computer").uptime()
+    os.execute(cmd)
+    local time = require("computer").uptime() - start
+    print("real  " .. tostring(time) .. "s")
   end
 }
 
