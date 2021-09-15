@@ -9,8 +9,8 @@ local readline = require("readline")
 
 local args, opts = require("argutil").parse(...)
 
-local _VERSION_FULL = "0.9.2"
-local _VERSION_MAJOR = _VERSION_FULL:sub(1, -3)
+local _VERSION_FULL = "1.0.0-rc1"
+local _VERSION_MAJOR = _VERSION_FULL:sub(1, -7)
 
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
 os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W> ")
