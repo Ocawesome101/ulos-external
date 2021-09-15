@@ -5,6 +5,7 @@ local path = require("path")
 local mtar = require("mtar")
 local size = require("size")
 local config = require("config")
+local semver = require("semver")
 local network = require("network")
 local computer = require("computer")
 local filetypes = require("filetypes")
@@ -25,6 +26,14 @@ end
 local function exit(opts, reason)
   log(opts, pfx.err, reason)
   os.exit(1)
+end
+
+local function cmpver(a, b)
+  local v1 = semver.parse(a)
+  local v2 = semver.parse(b)
+  v1.build = nil
+  v2.build = nil
+  return semver.isGreater(v2, v1) or semver.build(v1) == semver.build(v2)
 end
 
 local installed, ipath, preloaded
@@ -235,7 +244,7 @@ local function install(cfg, opts, packages)
   local resolve, resolving = nil, {}
   resolve = function(pkg)
     local data, repo = search(cfg, opts, pkg)
-    if installed[pkg] and installed[pkg].info.version >= data.version
+    if installed[pkg] and cmpver(installed[pkg].info.version, data.version)
         and not opts.f then
       log(opts, pfx.err, pkg .. ": package is already installed")
     elseif resolving[pkg] then
@@ -357,7 +366,7 @@ function lib.upgrade(cfg, opts)
   local to_upgrade = {}
   for k, v in pairs(installed) do
     local data, repo = search(cfg, opts, k)
-    if not (installed[k] and installed[k].info.version >= data.version
+    if not (installed[k] and cmpver(installed[k].info.version, data.version)
         and not opts.f) then
       log(opts, pfx.info, "updating ", k)
       to_upgrade[#to_upgrade+1] = k

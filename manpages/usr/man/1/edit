@@ -10,7 +10,7 @@
 *{BUGS}
   Lines longer than the screen width will break line editing.
 
-  The bottom bar will sometimes scroll up with the text.  This is purely a visual bug.
+  *{(until coreutils version 1.72)}  The bottom bar will sometimes scroll up with the text.  This is purely a visual bug.
 
 *{COPYRIGHT}
   ULOS Core Utilities copyright (c) 2021 Ocawesome101 under the DSLv2.
