@@ -9,8 +9,8 @@ local readline = require("readline")
 
 local args, opts = require("argutil").parse(...)
 
-local _VERSION_FULL = "1.0.0-rc1"
-local _VERSION_MAJOR = _VERSION_FULL:sub(1, -7)
+local _VERSION_FULL = "1.0.0"
+local _VERSION_MAJOR = _VERSION_FULL:sub(1, -3)
 
 os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
 os.setenv("PS1", os.getenv("PS1") or "<\\u@\\h: \\W> ")
@@ -209,7 +209,7 @@ local function executeCommand(cstr, nowait)
   local file, err = resolveCommand(cstr.command[1])
   if not file then logError("sh: " .. cstr.command[1] .. ": " .. err) return nil, err end
   local ok
-  
+
   if type(file) == "function" then -- this means it's a builtin
     if cstr.input == io.stdin and cstr.output == io.stdout then
       local result = table.pack(pcall(file, table.unpack(cstr.command, 2)))
@@ -251,6 +251,8 @@ local function executeCommand(cstr, nowait)
     stderr = cstr.err,
     env = cstr.env
   }
+
+  --print("Waiting for " .. pid)
   
   if not nowait then
     return process.await(pid)
@@ -391,7 +393,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
   end
   -- second pass: set up command structure
   local struct = {{command = {}, input = captureInput or io.stdin,
-    output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}}
+    output = (_cout_pipe or io.stdout), err = io.stderr, env = {}}}
   local i = 0
   while i < #simplified do
     i = i + 1
@@ -401,7 +403,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
       elseif i ~= #simplified then
         struct[#struct+1] = ";"
         struct[#struct+1] = {command = {}, input = captureInput or io.stdin,
-          output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
+          output = (_cout_pipe or io.stdout), err = io.stderr, env = {}}
       end
     elseif simplified[i] == "|" then
       if type(struct[#struct]) == "string" or #struct[#struct].command == 0 then
@@ -410,7 +412,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
         local _pipe = pipe.create()
         struct[#struct].output = _pipe
         struct[#struct+1] = {command = {}, input = _pipe,
-          output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
+          output = (_cout_pipe or io.stdout), err = io.stderr, env = {}}
       end
     elseif simplified[i] == "&" then
       if type(struct[#struct]) == "string" or #struct[#struct].command == 0 then
@@ -419,7 +421,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
         i = i + 1
         struct[#struct+1] = "&&"
         struct[#struct+1] = {command = {}, input = captureInput or io.stdin,
-          output = (captureOutput and _cout_pipe or io.stdout), err = io.stderr, env = {}}
+          output = (_cout_pipe or io.stdout), err = io.stderr, env = {}}
       else
         -- support for & is broken right now, i might fix it later.
         --struct[#struct+1] = "&"
@@ -510,7 +512,7 @@ eval_2 = function(simplified, captureOutput, captureInput)
         local exitStatus, exitReason = executeCommand(token, bg)
         lastExitStatus = exitStatus
         if exitReason ~= "__internal_process_exit" and exitReason ~= "exited"
-            and exitReason and #exitReason > 0 and type(exitStatis) == "number" then
+            and exitReason and #exitReason > 0 and type(exitStatus) == "number" then
           logError(exitReason)
         end
       end
@@ -519,10 +521,12 @@ eval_2 = function(simplified, captureOutput, captureInput)
     end
   end
 
+  --print("reading output")
+
   if captureOutput and not captureInput then
     local lines = {}
+    _cout_pipe:close() -- this ONLY works on pipes!
     for line in _cout_pipe:lines("l") do lines[#lines+1] = line end
-    _cout_pipe:close()
     return lines
   else
     return lastExitStatus == 0

@@ -45,6 +45,10 @@ function lib.parse(vers)
     return nil, "invalid version string"
   end
 
+  if pre:sub(1,1) == "+" then
+    build = pre
+    pre = ""
+  end
   pre = pre:sub(2)
   build = build:sub(2)
   if build:match("%+") then
@@ -82,17 +86,17 @@ local function cmp_pre(a, b)
   return false
 end
 
--- if v2 > v1
+-- if v1 > v2
 function lib.isGreater(v1, v2)
   checkArg(1, v1, "table")
   checkArg(2, v2, "table")
   return (
-    v2.major > v1.major or
-    v2.minor > v1.minor or
-    v2.patch > v1.patch or
-    #v2.prerelease == 0 or
-    cmp_pre(v2.prerelease, v1.prerelease) or
-    #v2.prerelease > #v1.prerelease
+    v1.major > v2.major or
+    v1.minor > v2.minor or
+    v1.patch > v2.patch or
+    (#v1.prerelease == 0 and #v2.prerelease > 0) or
+    cmp_pre(v1.prerelease, v2.prerelease) or
+    #v1.prerelease > #v2.prerelease
   )
 end
 

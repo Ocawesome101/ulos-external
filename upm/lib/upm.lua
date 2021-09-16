@@ -33,7 +33,7 @@ local function cmpver(a, b)
   local v2 = semver.parse(b)
   v1.build = nil
   v2.build = nil
-  return semver.isGreater(v2, v1) or semver.build(v1) == semver.build(v2)
+  return semver.isGreater(v1, v2) or semver.build(v1) == semver.build(v2)
 end
 
 local installed, ipath, preloaded
@@ -379,7 +379,8 @@ function lib.cli_search(cfg, opts, args)
   lib.preload()
   for i=1, #args, 1 do
     for data, repo, name in search(cfg, opts, args[i], true) do
-      io.write("\27[94m", repo, "\27[39m/", name, " ",
+      io.write("\27[94m", repo, "\27[39m/", name, "\27[90m-",
+        data.version, "\27[37m ",
         installed[name] and "\27[96m(installed)\27[39m" or "", "\n")
       io.write("  \27[92mAuthor: \27[39m", data.author or "(unknown)", "\n")
       io.write("  \27[92mDesc: \27[39m", data.description or
@@ -399,10 +400,11 @@ function lib.cli_list(cfg, opts, args)
       local data, err = config.table:load(path.concat(opts.root,
         cfg.General.dataDirectory, k .. ".list"))
       if not data then
-        log(pfx.warn, "list ", k, " is nonexistent; run 'upm update' to refresh")
+        log(pfx.warn,"list ", k, " is nonexistent; run 'upm update' to refresh")
         if err then log(pfx.warn, "(err: ", err, ")") end
       else
         for p in pairs(data.packages) do
+          --io.stderr:write(p, "\n")
           print(p)
         end
       end
