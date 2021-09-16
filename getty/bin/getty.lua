@@ -29,4 +29,5 @@ while true do
     end
   end
   os.sleep(5)
+  running = usysd.list(false, true)
 end
