@@ -15,7 +15,8 @@ local args, opts = require("argutil").getopt({
 if #args == 0 or opts.help then
   io.stderr:write([[
 usage: sudo [options] COMMAND
-Execute a command as another user.
+Execute a command as another user.  Requires the
+'sudo' service to be running.
   --help          Print this help text.
   -u,--user USER  Execute COMMAND as USER rather
                   than root.
