@@ -2,7 +2,7 @@
 
 usd._VERSION_MAJOR = 1
 usd._VERSION_MINOR = 0
-usd._VERSION_PATCH = 4
+usd._VERSION_PATCH = 6
 usd._RUNNING_ON = "unknown"
 
 io.write(string.format("USysD version %d.%d.%d\n", usd._VERSION_MAJOR, usd._VERSION_MINOR,

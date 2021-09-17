@@ -13,12 +13,42 @@ do
 
   local api = {}
   local running = {}
+  local requests = {}
   usd.running = running
+  usd.requests = requests
 
   local starting = {}
   local ttys = {[0] = io.stderr}
+
+  local function request(name, op)
+    local n = #requests+1
+    requests[n] = {name = name, op = op}
+    repeat until requests[n].performed
+    requests[n].clear = true
+    return table.unpack(requests[n], 1, requests[n].n)
+  end
+
   function api.start(name)
     checkArg(1, name, "string")
+    return request(name, "internal_start")
+  end
+
+  function api.stop(name)
+    checkArg(1, name, "string")
+    return request(name, "internal_stop")
+  end
+  
+  function api.enable(name)
+    checkArg(1, name, "string")
+    return request(name, "internal_enable")
+  end
+
+  function api.disable(name)
+    checkArg(1, name, "string")
+    return request(name, "internal_disable")
+  end
+
+  function usd.internal_start(name)
     if running[name] or starting[name] then return true end
 
     local full_name = name
@@ -86,6 +116,7 @@ do
       return nil
     end
 
+    starting[full_name] = false
     local pid, err = users.exec_as(uid, "", ok, "["..name.."]", nil, ttys[tty])
     if not pid and err then
       usd.log("\27[A\27[G\27[2K", usd.statii.fail, "failed to start ", full_name, ": ", err)
@@ -98,14 +129,17 @@ do
     return true
   end
 
-  function api.stop(name)
-    checkArg(1, name, "string")
+  function usd.internal_stop()
     usd.log(usd.statii.ok, "stopping service ", name)
     if not running[name] then
       usd.log(usd.statii.warn, "service ", name, " is not running")
       return nil
     end
-    process.kill(running[name], process.signals.quit)
+    local ok, err = process.kill(running[name], process.signals.quit)
+    if not ok then
+      usd.log(usd.statii.fail, "service ", name, " failed to stop: ", err, "\n")
+      return nil
+    end
     running[name] = nil
     return true
   end
@@ -130,8 +164,7 @@ do
     return fs.list(svc_dir)
   end
 
-  function api.enable(name)
-    checkArg(1, name, "string")
+  function usd.internal_enable(name)
     local enabled = api.list(true)
     local handle, err = io.open(autostart, "w")
     if not handle then return nil, err end
@@ -141,8 +174,7 @@ do
     return true
   end
 
-  function api.disable(name)
-    checkArg(1, name, "string")
+  function usd.internal_disable(name)
     local enabled = api.list(true)
     local handle, err = io.open(autostart, "w")
     if not handle then return nil, err end
@@ -158,9 +190,9 @@ do
   end
 
   usd.api = api
-  package.loaded.usysd = api
+  package.loaded.usysd = package.protect(api)
 
   for line in io.lines(autostart, "l") do
-    api.start(line)
+    usd.internal_start(line)
   end
 end

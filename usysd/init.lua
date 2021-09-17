@@ -22,6 +22,13 @@ while true do
       usd.running[name] = nil
     end
   end
+  for i, req in pairs(usd.requests) do
+    if req.clear then
+      usd.requests[i] = nil
+    else
+      usd.requests[i] = table.pack(usysd[req.op](req.name))
+    end
+  end
   if usd.__should_shut_down then
     usd.shutdown()
   end
