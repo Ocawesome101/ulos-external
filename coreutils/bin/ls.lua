@@ -159,6 +159,8 @@ local function list(dir)
   if not files then
     return nil, string.format("cannot access '%s': %s", odir, err)
   end
+
+  if #files == 0 then return true end
   
   local rm = {}
   for i=1, #files, 1 do
