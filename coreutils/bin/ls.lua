@@ -121,7 +121,8 @@ local function colorize(f, p)
     local info, err = fs.stat(full)
     
     if not info then
-      io.stderr:write("ls: failed getting color information for ", f, ": ", err, "\n")
+      io.stderr:write("ls: failed getting color information for ", f, ": ",
+        err, "\n")
       return nil
     end
     

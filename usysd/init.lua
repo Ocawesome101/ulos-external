@@ -23,6 +23,7 @@ while true do
     end
   end
   for i, req in pairs(usd.requests) do
+    print(i, req.op, req.name)
     if req.clear then
       usd.requests[i] = nil
     else
