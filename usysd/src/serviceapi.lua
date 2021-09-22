@@ -129,7 +129,7 @@ do
     return true
   end
 
-  function usd.internal_stop()
+  function usd.internal_stop(name)
     usd.log(usd.statii.ok, "stopping service ", name)
     if not running[name] then
       usd.log(usd.statii.warn, "service ", name, " is not running")

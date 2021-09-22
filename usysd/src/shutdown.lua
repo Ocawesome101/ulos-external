@@ -8,7 +8,7 @@ do
   function usd.shutdown()
     usd.log(usd.statii.wait, "stopping services")
     for name in pairs(usd.running) do
-      usd.api.stop(name)
+      usd.internal_stop(name)
     end
     usd.log(usd.statii.ok, "stopped services")
 
