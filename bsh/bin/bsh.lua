@@ -20,7 +20,7 @@ local args, opts = require("argutil").getopt({
   }
 }, ...)
 
-local _VERSION_FULL = "1.1.0"
+local _VERSION_FULL = "1.2.0"
 local _VERSION_MAJOR = _VERSION_FULL:sub(1, -3)
 
 if opts.h or opts.help then
