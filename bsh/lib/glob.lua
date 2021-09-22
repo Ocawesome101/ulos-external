@@ -6,7 +6,7 @@ local filesystem = require("filesystem")
 local expand
 expand = function(pattern)
   if pattern:sub(1,1) == "*" then
-    pattern = pattern .. "./"
+    pattern = "./" .. pattern
   end
   local results = {}
   if pattern:match("[^\\]%*") then
@@ -28,7 +28,7 @@ expand = function(pattern)
         fname_pat = fname_pat .. require("text").escape(start)
       end
     end
-    local files, err = filesystem.list(base)
+    local files, err = filesystem.list(path.canonical(base))
     if not files then
       -- ignore errors for now
       -- TODO: is this correct behavior?
@@ -41,7 +41,7 @@ expand = function(pattern)
       for i, file in ipairs(files) do
         if file:sub(-1) == "/" then file = file:sub(1,-2) end
         if file:match(fname_pat) then
-          local res = expand(path.clean(base .. file .. rest))
+          local res = expand(base .. file .. rest)
           for i=1, #res, 1 do
             results[#results+1] = res[i]
           end
