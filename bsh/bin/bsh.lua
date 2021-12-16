@@ -20,7 +20,7 @@ local args, opts = require("argutil").getopt({
   }
 }, ...)
 
-local _VERSION_FULL = "1.2.0"
+local _VERSION_FULL = "1.2.2"
 local _VERSION_MAJOR = _VERSION_FULL:sub(1, -3)
 
 if opts.h or opts.help then
@@ -630,6 +630,7 @@ local function process_prompt(ps)
 end
 
 function os.execute(...)
+  os.setenv("PATH", os.getenv("PATH") or "/bin:/sbin:/usr/bin")
   local cmd = table.concat({...}, " ")
   if #cmd > 0 then return eval_2(eval_1(mkrdr(tokenize(cmd)))) end
   return 0
