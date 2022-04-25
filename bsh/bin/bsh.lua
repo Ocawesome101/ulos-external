@@ -48,7 +48,7 @@ if opts.l or opts.login then
   if not os.getenv("HOME") then
     io.stderr:write("bsh: warning: HOME not set\n")
   elseif not fs.stat(os.getenv("HOME")) then
-    io.stderr:write("bsh: warning: home directory dos not exist\n")
+    io.stderr:write("bsh: warning: home directory does not exist\n")
   else
     os.setenv("PWD", os.getenv("HOME"))
   end
