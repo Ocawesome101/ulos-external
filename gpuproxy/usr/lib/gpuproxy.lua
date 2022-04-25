@@ -26,11 +26,11 @@ local blacklist = {
 return {
   buffer = function(px, bufi, wo, ho)
     local new = {}
-  
+
     local w, h = px.getBufferSize(bufi)
     w = math.max(1, math.min(w, wo or w))
     h = math.max(1, math.min(h, ho or h))
-    
+
     for k, v in pairs(px) do
       if not blacklist[k] then
         new[k] = function(...)
