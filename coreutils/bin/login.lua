@@ -12,6 +12,7 @@ if (process.info().owner or 0) ~= 0 then
   os.exit(1)
 end
 
+io.output().buffer_mode = "none"
 io.write("\27?0c\27[39;49m\n" .. _OSVERSION .. " (tty" .. io.stderr.tty .. ")\n\n")
 
 local rlops = {noexit = true}

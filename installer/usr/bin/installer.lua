@@ -80,13 +80,18 @@ do
   local _fs = component.list("filesystem")
 
   for k, v in pairs(_fs) do
-    if k ~= computer.tmpAddress() then
+    if k ~= computer.tmpAddress() and k ~= computer.getBootAddress() then
       table.insert(pages[2], tui.Selectable {
         x = (div and w // 8 or 0) + 2,
         y = (div and h // 8 or 1) + #pages[2] + 2,
         text = require("text").padLeft(math.floor(w * 0.75) - 4, k)
       })
     end
+  end
+
+  if #pages[2] == 2 then
+    print("\27[2J\27[1;1H\27[91mNo available filesystems\27[39m")
+    os.exit()
   end
 end
 

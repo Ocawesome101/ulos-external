@@ -21,10 +21,14 @@ do
   local _fs = component.list("filesystem")
 
   for k, v in pairs(_fs) do
-    if k ~= computer.tmpAddress() then
+    if k ~= computer.tmpAddress() and k ~= computer.getBootAddress() then
       fs[#fs+1] = k
     end
   end
+end
+
+if #fs == 0 then
+  print("\27[91mNo available filesystems\27[39m")
 end
 
 print("Available filesystems:")
